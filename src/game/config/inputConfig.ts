@@ -1,4 +1,5 @@
 export const inputConfig = {
-  mouseSensitivity: 0.0025,
-  moveSpeed: 12
+  restartKey: "KeyR",
+  fireKey: "Space",
+  pointerUnlockKey: "Escape"
 } as const;
