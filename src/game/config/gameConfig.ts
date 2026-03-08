@@ -1,6 +1,22 @@
 export const gameConfig = {
   appName: "Retro Flatland Shooter",
   initialHealth: 100,
-  worldSize: 2000,
+  worldHalfSize: 120,
+  moveSpeed: 22,
+  mouseSensitivity: 0.0023,
+  projectileSpeed: 95,
+  projectileLifetimeSeconds: 1.4,
+  projectileDamage: 1,
+  projectileRadius: 0.35,
+  weaponCooldownSeconds: 0.15,
+  maxProjectiles: 64,
+  targetSpawnIntervalSeconds: 1.2,
+  targetSafeRadius: 18,
+  maxTargets: 20,
+  targetMoveSpeed: 3.4,
+  targetHealth: 2,
+  targetContactDamagePerSecond: 18,
+  targetCollisionRadius: 1.5,
+  targetScore: 100,
   bestScoreStorageKey: "retro-flatland-shooter.best-score"
 } as const;

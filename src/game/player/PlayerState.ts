@@ -1,6 +1,10 @@
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+
+/** Mutable player runtime state. */
 export interface PlayerState {
+  position: Vector3;
+  yaw: number;
+  pitch: number;
   health: number;
-  x: number;
-  y: number;
-  z: number;
+  fireCooldownSeconds: number;
 }
