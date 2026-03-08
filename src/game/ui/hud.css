@@ -1,0 +1,35 @@
+#hud-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  color: #f2f2f2;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.hud-top {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+}
+
+.hud-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.crosshair {
+  font-size: 24px;
+  transform: translateY(-12px);
+}
+
+.state-text {
+  position: absolute;
+  top: 56%;
+  font-size: 18px;
+}
