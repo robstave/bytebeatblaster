@@ -1,4 +1,5 @@
 import { AudioManager } from "../audio/AudioManager";
+import { gameConfig } from "../config/gameConfig";
 import { CollisionSystem } from "../combat/CollisionSystem";
 import { ProjectileSystem } from "../combat/ProjectileSystem";
 import { WeaponController } from "../combat/WeaponController";
@@ -40,7 +41,11 @@ export class GameLoop {
         this.playerController.state.yaw,
         this.playerController.state.pitch
       );
-      this.hudManager.update(this.gameStateStore.getState(), input.pointerLocked);
+      this.hudManager.update(this.gameStateStore.getState(), input.pointerLocked, {
+        worldHalfSize: gameConfig.worldHalfSize,
+        playerPosition: this.playerController.state.position,
+        targets: this.worldManager.getTargets()
+      });
       this.lastAppState = state.appState;
       return;
     }
@@ -70,7 +75,11 @@ export class GameLoop {
       this.audioManager.playGameOver();
     }
 
-    this.hudManager.update(this.gameStateStore.getState(), input.pointerLocked);
+    this.hudManager.update(this.gameStateStore.getState(), input.pointerLocked, {
+      worldHalfSize: gameConfig.worldHalfSize,
+      playerPosition: this.playerController.state.position,
+      targets: this.worldManager.getTargets()
+    });
     this.lastAppState = nextState;
   }
 
