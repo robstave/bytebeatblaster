@@ -60,7 +60,8 @@ export class GameBootstrap {
     canvas.addEventListener("click", () => {
       inputManager.requestPointerLock();
       this.audioManager.initialize();
-      if (this.gameStateStore.getState().appState !== "gameOver") {
+      const appState = this.gameStateStore.getState().appState;
+      if (appState === "ready" || appState === "gameOver") {
         this.gameStateStore.resetRun();
       }
     });

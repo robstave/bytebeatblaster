@@ -17,6 +17,7 @@ export class InputManager {
   private lookDeltaX = 0;
   private lookDeltaY = 0;
   private fireHeld = false;
+  private firePressedThisFrame = false;
   private wantsRestart = false;
   private pointerLocked = false;
 
@@ -39,13 +40,14 @@ export class InputManager {
       moveZ: Number(this.isPressed("KeyW")) - Number(this.isPressed("KeyS")),
       lookDeltaX: this.lookDeltaX,
       lookDeltaY: this.lookDeltaY,
-      wantsFire: this.fireHeld,
+      wantsFire: this.fireHeld || this.firePressedThisFrame || this.isPressed(inputConfig.fireKey),
       wantsRestart: this.wantsRestart,
       pointerLocked: this.pointerLocked
     };
 
     this.lookDeltaX = 0;
     this.lookDeltaY = 0;
+    this.firePressedThisFrame = false;
     this.wantsRestart = false;
 
     return snapshot;
@@ -74,12 +76,17 @@ export class InputManager {
     this.lookDeltaY += event.movementY;
   };
 
-  private readonly onMouseDown = (): void => {
-    this.fireHeld = true;
+  private readonly onMouseDown = (event: MouseEvent): void => {
+    if (event.button === 0 && this.pointerLocked) {
+      this.fireHeld = true;
+      this.firePressedThisFrame = true;
+    }
   };
 
-  private readonly onMouseUp = (): void => {
-    this.fireHeld = false;
+  private readonly onMouseUp = (event: MouseEvent): void => {
+    if (event.button === 0) {
+      this.fireHeld = false;
+    }
   };
 
   private readonly onPointerLockChanged = (): void => {
