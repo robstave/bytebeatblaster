@@ -3,6 +3,7 @@ import { AudioManager } from "../audio/AudioManager";
 import { WeaponController } from "../combat/WeaponController";
 import { ProjectileSystem } from "../combat/ProjectileSystem";
 import { CollisionSystem } from "../combat/CollisionSystem";
+import { ImpactEffectSystem } from "../combat/ImpactEffectSystem";
 import { GameStateStore } from "./GameStateStore";
 import { InputManager } from "./InputManager";
 import { PlayerController } from "../player/PlayerController";
@@ -20,6 +21,7 @@ export class GameLoop {
     private readonly playerView: PlayerView,
     private readonly worldManager: WorldManager,
     private readonly projectileSystem: ProjectileSystem,
+    private readonly impactEffectSystem: ImpactEffectSystem,
     private readonly weaponController: WeaponController,
     private readonly collisionSystem: CollisionSystem,
     private readonly gameStateStore: GameStateStore,
@@ -45,7 +47,9 @@ export class GameLoop {
         worldHalfSize: gameConfig.worldHalfSize,
         playerPosition: this.playerController.state.position,
         targets: this.worldManager.getTargets(),
-        turrets: this.worldManager.getTurrets()
+        turrets: this.worldManager.getTurrets(),
+        level: this.worldManager.getLevel(),
+        levelMessage: this.worldManager.getLevelMessage()
       });
       this.lastAppState = state.appState;
       return;
@@ -67,11 +71,11 @@ export class GameLoop {
     const turretShots = this.worldManager.collectTurretShots(this.playerController.state.position);
     for (const shot of turretShots) {
       const muzzleOrigin = shot.origin.add(shot.direction.scale(2));
-      muzzleOrigin.y = shot.origin.y;
       this.projectileSystem.spawn(muzzleOrigin, shot.direction, "enemy");
     }
 
     this.projectileSystem.update(deltaSeconds);
+    this.impactEffectSystem.update(deltaSeconds);
     const beforeScore = this.gameStateStore.getState().score;
     this.collisionSystem.process(this.playerController.state.position, deltaSeconds);
     if (this.gameStateStore.getState().score > beforeScore) {
@@ -87,7 +91,9 @@ export class GameLoop {
       worldHalfSize: gameConfig.worldHalfSize,
       playerPosition: this.playerController.state.position,
       targets: this.worldManager.getTargets(),
-      turrets: this.worldManager.getTurrets()
+      turrets: this.worldManager.getTurrets(),
+      level: this.worldManager.getLevel(),
+      levelMessage: this.worldManager.getLevelMessage()
     });
     this.lastAppState = nextState;
   }
@@ -95,6 +101,7 @@ export class GameLoop {
   private restartRun(): void {
     this.worldManager.reset();
     this.projectileSystem.clear();
+    this.impactEffectSystem.clear();
     this.playerController.state.position.set(0, 1.6, 0);
     this.playerController.state.yaw = 0;
     this.playerController.state.pitch = 0;

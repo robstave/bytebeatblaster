@@ -12,21 +12,23 @@ export class WorldManager {
   private readonly targetSpawner: TargetSpawner;
   private readonly turretSpawner: TurretSpawner;
   private landmarks: Mesh[] = [];
-  private readonly cylinderTopPoints: Vector3[] = [];
   private readonly targets: TargetEntity[] = [];
   private readonly turrets: TurretEntity[] = [];
   private spawnTimerSeconds = 0;
+  private level = 1;
+  private levelMessageSeconds = 0;
 
   public constructor(scene: Scene) {
     this.targetSpawner = new TargetSpawner(scene);
     this.turretSpawner = new TurretSpawner(scene);
     const landmarkResult = new LandmarkSpawner().spawn(scene);
     this.landmarks = landmarkResult.meshes;
-    this.cylinderTopPoints.push(...landmarkResult.cylinderTopPoints);
     this.rebuildTurrets();
   }
 
   public update(playerPosition: Vector3, deltaSeconds: number): void {
+    this.levelMessageSeconds = Math.max(0, this.levelMessageSeconds - deltaSeconds);
+
     this.spawnTimerSeconds -= deltaSeconds;
     if (this.spawnTimerSeconds <= 0 && this.targets.length < gameConfig.maxTargets) {
       this.targets.push(this.targetSpawner.spawn(playerPosition));
@@ -45,6 +47,12 @@ export class WorldManager {
         target.mesh.position.addInPlace(move.scale(gameConfig.targetMoveSpeed * deltaSeconds));
       }
     }
+
+    if (this.turrets.length === 0) {
+      this.level += 1;
+      this.levelMessageSeconds = 2.2;
+      this.rebuildTurrets();
+    }
   }
 
   public collectTurretShots(playerPosition: Readonly<Vector3>): Array<{ origin: Vector3; direction: Vector3 }> {
@@ -56,7 +64,6 @@ export class WorldManager {
       }
 
       const direction = playerPosition.subtract(turret.mesh.position);
-      direction.y = 0;
       if (direction.lengthSquared() <= 0.001) {
         turret.fireTimerSeconds = gameConfig.turretFireIntervalSeconds;
         continue;
@@ -88,6 +95,18 @@ export class WorldManager {
     }
   }
 
+  public applyTargetHit(target: TargetEntity, damage: number): boolean {
+    target.health -= damage;
+    if (target.health > 0 && target.damageState === "healthy") {
+      this.targetSpawner.setDamagedAppearance(target);
+    }
+    if (target.health <= 0) {
+      this.removeTarget(target);
+      return true;
+    }
+    return false;
+  }
+
   public removeTurret(turret: TurretEntity): void {
     const index = this.turrets.indexOf(turret);
     if (index >= 0) {
@@ -101,8 +120,21 @@ export class WorldManager {
       target.mesh.dispose();
     }
     this.targets.length = 0;
+    this.level = 1;
+    this.levelMessageSeconds = 0;
     this.spawnTimerSeconds = 0;
     this.rebuildTurrets();
+  }
+
+  public getLevel(): number {
+    return this.level;
+  }
+
+  public getLevelMessage(): string {
+    if (this.levelMessageSeconds <= 0) {
+      return "";
+    }
+    return `Next Level: ${this.level}`;
   }
 
   public dispose(): void {
@@ -124,8 +156,13 @@ export class WorldManager {
     }
     this.turrets.length = 0;
 
-    for (const topPoint of this.cylinderTopPoints) {
-      this.turrets.push(this.turretSpawner.spawnAt(topPoint));
+    const count = gameConfig.baseTurretCount + (this.level - 1);
+    const radius = gameConfig.worldHalfSize * 0.62;
+    for (let i = 0; i < count; i += 1) {
+      const angle = (Math.PI * 2 * i) / count + this.level * 0.27;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      this.turrets.push(this.turretSpawner.spawnAt(new Vector3(x, 1.4, z)));
     }
   }
 }

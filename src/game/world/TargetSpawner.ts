@@ -8,12 +8,17 @@ import { TargetEntity } from "../entities/types";
 
 /** Spawns simple target dummies with safe-radius placement. */
 export class TargetSpawner {
-  private readonly targetMaterial: StandardMaterial;
+  private readonly healthyTargetMaterial: StandardMaterial;
+  private readonly damagedTargetMaterial: StandardMaterial;
 
   public constructor(private readonly scene: Scene) {
-    this.targetMaterial = new StandardMaterial("target-material", scene);
-    this.targetMaterial.diffuseColor = new Color3(0.85, 0.2, 0.28);
-    this.targetMaterial.emissiveColor = new Color3(0.15, 0.02, 0.02);
+    this.healthyTargetMaterial = new StandardMaterial("target-material", scene);
+    this.healthyTargetMaterial.diffuseColor = new Color3(0.85, 0.2, 0.28);
+    this.healthyTargetMaterial.emissiveColor = new Color3(0.15, 0.02, 0.02);
+
+    this.damagedTargetMaterial = new StandardMaterial("target-material-damaged", scene);
+    this.damagedTargetMaterial.diffuseColor = new Color3(1, 0.58, 0.12);
+    this.damagedTargetMaterial.emissiveColor = new Color3(0.28, 0.14, 0.02);
   }
 
   public spawn(playerPosition: Vector3): TargetEntity {
@@ -28,12 +33,19 @@ export class TargetSpawner {
       1.3,
       Math.max(-gameConfig.worldHalfSize + 2, Math.min(gameConfig.worldHalfSize - 2, z))
     );
-    mesh.material = this.targetMaterial;
+    mesh.material = this.healthyTargetMaterial;
 
     return {
       mesh,
       health: gameConfig.targetHealth,
-      scoreValue: gameConfig.targetScore
+      maxHealth: gameConfig.targetHealth,
+      scoreValue: gameConfig.targetScore,
+      damageState: "healthy"
     };
+  }
+
+  public setDamagedAppearance(target: TargetEntity): void {
+    target.mesh.material = this.damagedTargetMaterial;
+    target.damageState = "damaged";
   }
 }

@@ -1,6 +1,7 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { gameConfig } from "../config/gameConfig";
 import { DamageSystem } from "./DamageSystem";
+import { ImpactEffectSystem } from "./ImpactEffectSystem";
 import { ProjectileSystem } from "./ProjectileSystem";
 import { WorldManager } from "../world/WorldManager";
 
@@ -9,7 +10,8 @@ export class CollisionSystem {
   public constructor(
     private readonly worldManager: WorldManager,
     private readonly projectileSystem: ProjectileSystem,
-    private readonly damageSystem: DamageSystem
+    private readonly damageSystem: DamageSystem,
+    private readonly impactEffectSystem: ImpactEffectSystem
   ) {}
 
   public process(playerPosition: Vector3, deltaSeconds: number): void {
@@ -24,10 +26,10 @@ export class CollisionSystem {
         for (const target of [...targets]) {
           const distance = Vector3.Distance(projectile.mesh.position, target.mesh.position);
           if (distance <= gameConfig.targetCollisionRadius) {
-            target.health -= projectile.damage;
             this.projectileSystem.removeProjectile(projectile);
-            if (target.health <= 0) {
-              this.worldManager.removeTarget(target);
+            const destroyed = this.worldManager.applyTargetHit(target, projectile.damage);
+            if (destroyed) {
+              this.impactEffectSystem.spawnTargetDestroyEffect(target.mesh.position);
               this.damageSystem.awardScore(target.scoreValue);
             }
             consumed = true;
