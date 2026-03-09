@@ -1,12 +1,13 @@
 import "./hud.css";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { TargetEntity } from "../entities/types";
+import { TargetEntity, TurretEntity } from "../entities/types";
 import { GameState } from "../core/GameStateStore";
 
 export interface HUDWorldSnapshot {
   worldHalfSize: number;
   playerPosition: Readonly<Vector3>;
   targets: readonly TargetEntity[];
+  turrets: readonly TurretEntity[];
 }
 
 /** Owns the overlay HUD and applies minimal DOM updates. */
@@ -103,6 +104,13 @@ export class HUDManager {
       const y = center + target.mesh.position.z * scale;
       context.fillStyle = "#ff5f72";
       context.fillRect(x - 2.5, y - 2.5, 5, 5);
+    }
+
+    for (const turret of worldSnapshot.turrets) {
+      const x = center + turret.mesh.position.x * scale;
+      const y = center + turret.mesh.position.z * scale;
+      context.fillStyle = "#c877ff";
+      context.fillRect(x - 3, y - 3, 6, 6);
     }
 
     const playerX = center + worldSnapshot.playerPosition.x * scale;

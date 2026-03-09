@@ -4,7 +4,7 @@ import { DamageSystem } from "./DamageSystem";
 import { ProjectileSystem } from "./ProjectileSystem";
 import { WorldManager } from "../world/WorldManager";
 
-/** Processes projectile-target and target-player collision outcomes. */
+/** Processes projectile collisions and contact damage outcomes. */
 export class CollisionSystem {
   public constructor(
     private readonly worldManager: WorldManager,
@@ -14,19 +14,48 @@ export class CollisionSystem {
 
   public process(playerPosition: Vector3, deltaSeconds: number): void {
     const targets = this.worldManager.getTargets();
+    const turrets = this.worldManager.getTurrets();
     const projectiles = this.projectileSystem.getProjectiles();
 
     for (const projectile of [...projectiles]) {
-      for (const target of [...targets]) {
-        const distance = Vector3.Distance(projectile.mesh.position, target.mesh.position);
-        if (distance <= gameConfig.targetCollisionRadius) {
-          target.health -= projectile.damage;
-          this.projectileSystem.removeProjectile(projectile);
-          if (target.health <= 0) {
-            this.worldManager.removeTarget(target);
-            this.damageSystem.awardScore(target.scoreValue);
+      if (projectile.owner === "player") {
+        let consumed = false;
+
+        for (const target of [...targets]) {
+          const distance = Vector3.Distance(projectile.mesh.position, target.mesh.position);
+          if (distance <= gameConfig.targetCollisionRadius) {
+            target.health -= projectile.damage;
+            this.projectileSystem.removeProjectile(projectile);
+            if (target.health <= 0) {
+              this.worldManager.removeTarget(target);
+              this.damageSystem.awardScore(target.scoreValue);
+            }
+            consumed = true;
+            break;
           }
-          break;
+        }
+
+        if (consumed) {
+          continue;
+        }
+
+        for (const turret of [...turrets]) {
+          const distance = Vector3.Distance(projectile.mesh.position, turret.mesh.position);
+          if (distance <= gameConfig.turretCollisionRadius) {
+            turret.health -= projectile.damage;
+            this.projectileSystem.removeProjectile(projectile);
+            if (turret.health <= 0) {
+              this.worldManager.removeTurret(turret);
+              this.damageSystem.awardScore(turret.scoreValue);
+            }
+            break;
+          }
+        }
+      } else {
+        const playerHitDistance = Vector3.Distance(projectile.mesh.position, playerPosition);
+        if (playerHitDistance <= gameConfig.targetCollisionRadius * 0.9) {
+          this.projectileSystem.removeProjectile(projectile);
+          this.damageSystem.damagePlayer(projectile.damage);
         }
       }
     }

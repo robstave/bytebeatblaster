@@ -4,33 +4,38 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { gameConfig } from "../config/gameConfig";
-import { ProjectileEntity } from "../entities/types";
+import { ProjectileEntity, ProjectileOwner } from "../entities/types";
 
 /** Owns active projectile entities, updates, and lifecycle cleanup. */
 export class ProjectileSystem {
   private readonly projectiles: ProjectileEntity[] = [];
-  private readonly projectileMaterial: StandardMaterial;
+  private readonly playerProjectileMaterial: StandardMaterial;
+  private readonly enemyProjectileMaterial: StandardMaterial;
 
   public constructor(private readonly scene: Scene) {
-    this.projectileMaterial = new StandardMaterial("projectile-material", scene);
-    this.projectileMaterial.emissiveColor = new Color3(0.3, 1, 0.8);
+    this.playerProjectileMaterial = new StandardMaterial("projectile-material-player", scene);
+    this.playerProjectileMaterial.emissiveColor = new Color3(0.3, 1, 0.8);
+
+    this.enemyProjectileMaterial = new StandardMaterial("projectile-material-enemy", scene);
+    this.enemyProjectileMaterial.emissiveColor = new Color3(0.95, 0.42, 0.95);
   }
 
-  public spawn(origin: Vector3, direction: Vector3): boolean {
+  public spawn(origin: Vector3, direction: Vector3, owner: ProjectileOwner = "player"): boolean {
     if (this.projectiles.length >= gameConfig.maxProjectiles) {
       return false;
     }
 
     const mesh = MeshBuilder.CreateSphere("projectile", { diameter: gameConfig.projectileRadius * 2 }, this.scene);
     mesh.position.copyFrom(origin);
-    mesh.material = this.projectileMaterial;
+    mesh.material = owner === "player" ? this.playerProjectileMaterial : this.enemyProjectileMaterial;
 
     this.projectiles.push({
       mesh,
       direction: direction.normalizeToNew(),
-      speed: gameConfig.projectileSpeed,
+      speed: owner === "player" ? gameConfig.projectileSpeed : gameConfig.turretProjectileSpeed,
       lifetimeSeconds: gameConfig.projectileLifetimeSeconds,
-      damage: gameConfig.projectileDamage
+      damage: owner === "player" ? gameConfig.projectileDamage : gameConfig.turretProjectileDamage,
+      owner
     });
     return true;
   }
