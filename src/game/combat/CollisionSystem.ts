@@ -47,6 +47,7 @@ export class CollisionSystem {
             turret.health -= projectile.damage;
             this.projectileSystem.removeProjectile(projectile);
             if (turret.health <= 0) {
+              this.impactEffectSystem.spawnTurretDestroyEffect(turret.root.position);
               this.worldManager.removeTurret(turret);
               this.damageSystem.awardScore(turret.scoreValue);
             }
