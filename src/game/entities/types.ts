@@ -16,7 +16,9 @@ export interface ProjectileEntity {
 export interface TargetEntity {
   mesh: Mesh;
   health: number;
+  maxHealth: number;
   scoreValue: number;
+  damageState: "healthy" | "damaged";
 }
 
 export interface TurretEntity {

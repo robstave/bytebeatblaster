@@ -20,6 +20,7 @@ export const gameConfig = {
   targetScore: 100,
   turretHealth: 4,
   turretScore: 250,
+  baseTurretCount: 4,
   turretFireIntervalSeconds: 1.6,
   turretProjectileSpeed: 36,
   turretProjectileDamage: 8,

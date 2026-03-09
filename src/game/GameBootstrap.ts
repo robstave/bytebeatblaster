@@ -1,6 +1,7 @@
 import { AudioManager } from "./audio/AudioManager";
 import { CollisionSystem } from "./combat/CollisionSystem";
 import { DamageSystem } from "./combat/DamageSystem";
+import { ImpactEffectSystem } from "./combat/ImpactEffectSystem";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
 import { WeaponController } from "./combat/WeaponController";
 import { EngineManager } from "./core/EngineManager";
@@ -38,15 +39,22 @@ export class GameBootstrap {
     const playerView = new PlayerView(scene, canvas);
     const worldManager = new WorldManager(scene);
     const projectileSystem = new ProjectileSystem(scene);
+    const impactEffectSystem = new ImpactEffectSystem(scene);
     const weaponController = new WeaponController();
     const damageSystem = new DamageSystem(this.gameStateStore);
-    const collisionSystem = new CollisionSystem(worldManager, projectileSystem, damageSystem);
+    const collisionSystem = new CollisionSystem(
+      worldManager,
+      projectileSystem,
+      damageSystem,
+      impactEffectSystem
+    );
     const loop = new GameLoop(
       inputManager,
       playerController,
       playerView,
       worldManager,
       projectileSystem,
+      impactEffectSystem,
       weaponController,
       collisionSystem,
       this.gameStateStore,

@@ -8,6 +8,8 @@ export interface HUDWorldSnapshot {
   playerPosition: Readonly<Vector3>;
   targets: readonly TargetEntity[];
   turrets: readonly TurretEntity[];
+  level: number;
+  levelMessage: string;
 }
 
 /** Owns the overlay HUD and applies minimal DOM updates. */
@@ -16,6 +18,7 @@ export class HUDManager {
   private scoreEl: HTMLDivElement | null = null;
   private bestEl: HTMLDivElement | null = null;
   private healthEl: HTMLDivElement | null = null;
+  private levelEl: HTMLDivElement | null = null;
   private stateTextEl: HTMLDivElement | null = null;
   private minimapCanvas: HTMLCanvasElement | null = null;
   private minimapContext: CanvasRenderingContext2D | null = null;
@@ -28,6 +31,7 @@ export class HUDManager {
         <div id="hud-score">Score: 0</div>
         <div id="hud-best">Best: 0</div>
         <div id="hud-health">Health: 100</div>
+        <div id="hud-level">Level: 1</div>
       </div>
       <div class="hud-center">
         <div class="crosshair">+</div>
@@ -41,6 +45,7 @@ export class HUDManager {
     this.scoreEl = this.root.querySelector("#hud-score");
     this.bestEl = this.root.querySelector("#hud-best");
     this.healthEl = this.root.querySelector("#hud-health");
+    this.levelEl = this.root.querySelector("#hud-level");
     this.stateTextEl = this.root.querySelector("#hud-state");
     this.minimapCanvas = this.root.querySelector("#hud-minimap");
     this.minimapContext = this.minimapCanvas?.getContext("2d") ?? null;
@@ -54,6 +59,7 @@ export class HUDManager {
     this.setText(this.scoreEl, `Score: ${state.score}`);
     this.setText(this.bestEl, `Best: ${state.bestScore}`);
     this.setText(this.healthEl, `Health: ${Math.ceil(state.playerHealth)}`);
+    this.setText(this.levelEl, `Level: ${worldSnapshot.level}`);
     this.drawMinimap(worldSnapshot);
 
     const message =
@@ -64,7 +70,7 @@ export class HUDManager {
           : pointerLocked
             ? ""
             : "Click to re-enter";
-    this.setText(this.stateTextEl, message);
+    this.setText(this.stateTextEl, worldSnapshot.levelMessage || message);
   }
 
   private setText(element: HTMLDivElement | null, value: string): void {
