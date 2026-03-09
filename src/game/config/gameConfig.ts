@@ -9,7 +9,7 @@ export const gameConfig = {
   projectileDamage: 1,
   projectileRadius: 0.35,
   weaponCooldownSeconds: 0.15,
-  maxProjectiles: 64,
+  maxProjectiles: 128,
   targetSpawnIntervalSeconds: 1.2,
   targetSafeRadius: 18,
   maxTargets: 20,
@@ -18,5 +18,11 @@ export const gameConfig = {
   targetContactDamagePerSecond: 18,
   targetCollisionRadius: 1.5,
   targetScore: 100,
+  turretHealth: 4,
+  turretScore: 250,
+  turretFireIntervalSeconds: 1.6,
+  turretProjectileSpeed: 36,
+  turretProjectileDamage: 8,
+  turretCollisionRadius: 1.65,
   bestScoreStorageKey: "retro-flatland-shooter.best-score"
 } as const;

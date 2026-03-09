@@ -1,8 +1,8 @@
-import { AudioManager } from "../audio/AudioManager";
 import { gameConfig } from "../config/gameConfig";
-import { CollisionSystem } from "../combat/CollisionSystem";
-import { ProjectileSystem } from "../combat/ProjectileSystem";
+import { AudioManager } from "../audio/AudioManager";
 import { WeaponController } from "../combat/WeaponController";
+import { ProjectileSystem } from "../combat/ProjectileSystem";
+import { CollisionSystem } from "../combat/CollisionSystem";
 import { GameStateStore } from "./GameStateStore";
 import { InputManager } from "./InputManager";
 import { PlayerController } from "../player/PlayerController";
@@ -10,7 +10,7 @@ import { PlayerView } from "../player/PlayerView";
 import { HUDManager } from "../ui/HUDManager";
 import { WorldManager } from "../world/WorldManager";
 
-/** Runs the fixed update ordering for core gameplay systems. */
+/** Fixed-order update runner for core gameplay systems. */
 export class GameLoop {
   private lastAppState: string = "boot";
 
@@ -44,7 +44,8 @@ export class GameLoop {
       this.hudManager.update(this.gameStateStore.getState(), input.pointerLocked, {
         worldHalfSize: gameConfig.worldHalfSize,
         playerPosition: this.playerController.state.position,
-        targets: this.worldManager.getTargets()
+        targets: this.worldManager.getTargets(),
+        turrets: this.worldManager.getTurrets()
       });
       this.lastAppState = state.appState;
       return;
@@ -63,6 +64,13 @@ export class GameLoop {
     }
 
     this.worldManager.update(this.playerController.state.position, deltaSeconds);
+    const turretShots = this.worldManager.collectTurretShots(this.playerController.state.position);
+    for (const shot of turretShots) {
+      const muzzleOrigin = shot.origin.add(shot.direction.scale(2));
+      muzzleOrigin.y = shot.origin.y;
+      this.projectileSystem.spawn(muzzleOrigin, shot.direction, "enemy");
+    }
+
     this.projectileSystem.update(deltaSeconds);
     const beforeScore = this.gameStateStore.getState().score;
     this.collisionSystem.process(this.playerController.state.position, deltaSeconds);
@@ -78,7 +86,8 @@ export class GameLoop {
     this.hudManager.update(this.gameStateStore.getState(), input.pointerLocked, {
       worldHalfSize: gameConfig.worldHalfSize,
       playerPosition: this.playerController.state.position,
-      targets: this.worldManager.getTargets()
+      targets: this.worldManager.getTargets(),
+      turrets: this.worldManager.getTurrets()
     });
     this.lastAppState = nextState;
   }
