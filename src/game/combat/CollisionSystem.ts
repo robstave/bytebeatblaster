@@ -42,7 +42,7 @@ export class CollisionSystem {
         }
 
         for (const turret of [...turrets]) {
-          const distance = Vector3.Distance(projectile.mesh.position, turret.mesh.position);
+          const distance = Vector3.Distance(projectile.mesh.position, turret.root.position);
           if (distance <= gameConfig.turretCollisionRadius) {
             turret.health -= projectile.damage;
             this.projectileSystem.removeProjectile(projectile);

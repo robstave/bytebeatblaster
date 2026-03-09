@@ -1,4 +1,5 @@
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 export type EntityKind = "player" | "projectile" | "target" | "enemy" | "landmark";
@@ -22,7 +23,12 @@ export interface TargetEntity {
 }
 
 export interface TurretEntity {
-  mesh: Mesh;
+  /** Root transform positioned at the turret world location. */
+  root: TransformNode;
+  /** Static base cylinder — used for collision / position queries. */
+  body: Mesh;
+  /** Rotatable head node (dome + cannon) that tracks the player. */
+  head: TransformNode;
   health: number;
   scoreValue: number;
   fireTimerSeconds: number;
