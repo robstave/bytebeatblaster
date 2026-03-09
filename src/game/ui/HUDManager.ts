@@ -113,8 +113,8 @@ export class HUDManager {
     }
 
     for (const turret of worldSnapshot.turrets) {
-      const x = center + turret.mesh.position.x * scale;
-      const y = center + turret.mesh.position.z * scale;
+      const x = center + turret.root.position.x * scale;
+      const y = center + turret.root.position.z * scale;
       context.fillStyle = "#c877ff";
       context.fillRect(x - 3, y - 3, 6, 6);
     }

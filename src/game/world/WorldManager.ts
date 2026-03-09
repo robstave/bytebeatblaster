@@ -37,6 +37,11 @@ export class WorldManager {
 
     for (const turret of this.turrets) {
       turret.fireTimerSeconds -= deltaSeconds;
+
+      // Rotate the head (dome + cannon) to face the player
+      const dx = playerPosition.x - turret.root.position.x;
+      const dz = playerPosition.z - turret.root.position.z;
+      turret.head.rotation.y = Math.atan2(dx, dz);
     }
 
     for (const target of this.targets) {
@@ -63,14 +68,15 @@ export class WorldManager {
         continue;
       }
 
-      const direction = playerPosition.subtract(turret.mesh.position);
+      const turretPos = turret.root.position;
+      const direction = playerPosition.subtract(turretPos);
       if (direction.lengthSquared() <= 0.001) {
         turret.fireTimerSeconds = gameConfig.turretFireIntervalSeconds;
         continue;
       }
 
       shotData.push({
-        origin: turret.mesh.position.clone(),
+        origin: turretPos.clone(),
         direction: direction.normalize()
       });
       turret.fireTimerSeconds = gameConfig.turretFireIntervalSeconds;
@@ -110,7 +116,7 @@ export class WorldManager {
   public removeTurret(turret: TurretEntity): void {
     const index = this.turrets.indexOf(turret);
     if (index >= 0) {
-      this.turrets[index].mesh.dispose();
+      this.turrets[index].root.dispose(false, true);
       this.turrets.splice(index, 1);
     }
   }
@@ -140,7 +146,7 @@ export class WorldManager {
   public dispose(): void {
     this.reset();
     for (const turret of this.turrets) {
-      turret.mesh.dispose();
+      turret.root.dispose(false, true);
     }
     this.turrets.length = 0;
 
@@ -152,7 +158,7 @@ export class WorldManager {
 
   private rebuildTurrets(): void {
     for (const turret of this.turrets) {
-      turret.mesh.dispose();
+      turret.root.dispose(false, true);
     }
     this.turrets.length = 0;
 
