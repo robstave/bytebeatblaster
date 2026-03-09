@@ -25,5 +25,14 @@ export const gameConfig = {
   turretProjectileSpeed: 36,
   turretProjectileDamage: 8,
   turretCollisionRadius: 1.65,
+  ufoHeight: 24,
+  ufoSpeed: 28,
+  ufoSpawnMinDelaySeconds: 9,
+  ufoSpawnMaxDelaySeconds: 16,
+  ufoFireIntervalSeconds: 1.06,
+  ufoShotScatterRadians: 0.2,
+  regularKillsPerHealthPickup: 20,
+  healthPickupValue: 30,
+  healthPickupCollisionRadius: 2,
   bestScoreStorageKey: "retro-flatland-shooter.best-score"
 } as const;

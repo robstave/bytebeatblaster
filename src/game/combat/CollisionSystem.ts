@@ -63,6 +63,11 @@ export class CollisionSystem {
       }
     }
 
+    const recoveredHealth = this.worldManager.tryCollectHealthPickup(playerPosition);
+    if (recoveredHealth > 0) {
+      this.damageSystem.healPlayer(recoveredHealth);
+    }
+
     let contactDamage = 0;
     for (const target of this.worldManager.getTargets()) {
       const distance = Vector3.Distance(playerPosition, target.mesh.position);

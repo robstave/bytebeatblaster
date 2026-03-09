@@ -11,4 +11,8 @@ export class DamageSystem {
   public awardScore(points: number): void {
     this.gameStateStore.addScore(points);
   }
+
+  public healPlayer(amount: number): void {
+    this.gameStateStore.healPlayer(amount);
+  }
 }
