@@ -55,6 +55,13 @@ export class GameStateStore {
     };
   }
 
+  public healPlayer(amount: number): void {
+    this.state = {
+      ...this.state,
+      playerHealth: Math.min(gameConfig.initialHealth, this.state.playerHealth + amount)
+    };
+  }
+
   private loadBestScore(): number {
     const raw = localStorage.getItem(gameConfig.bestScoreStorageKey);
     const parsed = raw === null ? Number.NaN : Number(raw);

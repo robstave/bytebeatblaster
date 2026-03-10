@@ -74,6 +74,12 @@ export class GameLoop {
       this.projectileSystem.spawn(muzzleOrigin, shot.direction, "enemy");
     }
 
+    const ufoShots = this.worldManager.collectUfoShots(this.playerController.state.position);
+    for (const shot of ufoShots) {
+      const muzzleOrigin = shot.origin.add(shot.direction.scale(2.2));
+      this.projectileSystem.spawn(muzzleOrigin, shot.direction, "enemy");
+    }
+
     this.projectileSystem.update(deltaSeconds);
     this.impactEffectSystem.update(deltaSeconds);
     const beforeScore = this.gameStateStore.getState().score;
