@@ -6,7 +6,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { gameConfig } from "../config/gameConfig";
-import { TargetEntity, TurretEntity } from "../entities/types";
+import { ByteBeatOrbEntity, TargetEntity, TurretEntity } from "../entities/types";
 import { LandmarkSpawner } from "./LandmarkSpawner";
 import { TargetSpawner } from "./TargetSpawner";
 import { TurretSpawner } from "./TurretSpawner";
@@ -18,6 +18,8 @@ interface UfoPass {
   progress: number;
   distance: number;
   fireTimerSeconds: number;
+  health: number;
+  scoreValue: number;
 }
 
 interface HealthPickup {
@@ -33,16 +35,19 @@ export class WorldManager {
   private landmarks: Mesh[] = [];
   private readonly targets: TargetEntity[] = [];
   private readonly turrets: TurretEntity[] = [];
+  private readonly byteBeatOrbs: ByteBeatOrbEntity[] = [];
   private spawnTimerSeconds = 0;
   private level = 1;
   private levelMessageSeconds = 0;
   private readonly ufoMaterial: StandardMaterial;
+  private readonly byteBeatOrbMaterial: StandardMaterial;
   private activeUfo: UfoPass | null = null;
   private ufoSpawnTimerSeconds: number = gameConfig.ufoSpawnMinDelaySeconds;
   private readonly ufoTravel = new Vector3();
   private healthPickup: HealthPickup | null = null;
   private readonly healthPickupMaterial: StandardMaterial;
   private regularEnemyKillCount = 0;
+  private byteBeatSpawnTimerSeconds: number = gameConfig.byteBeatOrbSpawnIntervalSeconds;
 
   public constructor(scene: Scene) {
     this.scene = scene;
@@ -53,6 +58,10 @@ export class WorldManager {
     this.ufoMaterial = new StandardMaterial("ufo-material", scene);
     this.ufoMaterial.diffuseColor = new Color3(0.4, 0.88, 1);
     this.ufoMaterial.emissiveColor = new Color3(0.06, 0.2, 0.26);
+
+    this.byteBeatOrbMaterial = new StandardMaterial("bytebeat-orb-material", scene);
+    this.byteBeatOrbMaterial.diffuseColor = new Color3(0.85, 0.22, 1);
+    this.byteBeatOrbMaterial.emissiveColor = new Color3(0.26, 0.06, 0.38);
 
     this.healthPickupMaterial = new StandardMaterial("health-pickup-material", scene);
     this.healthPickupMaterial.diffuseColor = new Color3(0.12, 1, 0.18);
@@ -86,6 +95,7 @@ export class WorldManager {
       }
     }
 
+    this.updateByteBeatOrbs(playerPosition, deltaSeconds);
     this.updateUfo(playerPosition, deltaSeconds);
     if (this.healthPickup !== null) {
       this.healthPickup.mesh.rotation.y += this.healthPickup.spinRate * deltaSeconds;
@@ -153,12 +163,56 @@ export class WorldManager {
     }];
   }
 
+  public tryHitUfo(projectilePosition: Readonly<Vector3>, damage: number): { position: Vector3; scoreValue: number } | null {
+    if (this.activeUfo === null) {
+      return null;
+    }
+
+    const distance = Vector3.Distance(projectilePosition, this.activeUfo.root.position);
+    if (distance > gameConfig.ufoCollisionRadius) {
+      return null;
+    }
+
+    this.activeUfo.health -= damage;
+    if (this.activeUfo.health > 0) {
+      return null;
+    }
+
+    const result = {
+      position: this.activeUfo.root.position.clone(),
+      scoreValue: this.activeUfo.scoreValue
+    };
+    this.clearUfo();
+    this.ufoSpawnTimerSeconds = gameConfig.ufoSpawnMinDelaySeconds;
+    return result;
+  }
+
   public getTargets(): readonly TargetEntity[] {
     return this.targets;
   }
 
   public getTurrets(): readonly TurretEntity[] {
     return this.turrets;
+  }
+
+  public getByteBeatOrbs(): readonly ByteBeatOrbEntity[] {
+    return this.byteBeatOrbs;
+  }
+
+  public getNearestByteBeatOrbDistance(playerPosition: Readonly<Vector3>): number | null {
+    if (this.byteBeatOrbs.length === 0) {
+      return null;
+    }
+
+    let nearest = Number.POSITIVE_INFINITY;
+    for (const orb of this.byteBeatOrbs) {
+      const dist = Vector3.Distance(orb.mesh.position, playerPosition);
+      if (dist < nearest) {
+        nearest = dist;
+      }
+    }
+
+    return nearest;
   }
 
   public removeTarget(target: TargetEntity): void {
@@ -182,6 +236,16 @@ export class WorldManager {
       }
       return true;
     }
+    return false;
+  }
+
+  public applyByteBeatOrbHit(orb: ByteBeatOrbEntity, damage: number): boolean {
+    orb.health -= damage;
+    if (orb.health <= 0) {
+      this.removeByteBeatOrb(orb);
+      return true;
+    }
+
     return false;
   }
 
@@ -218,10 +282,15 @@ export class WorldManager {
     this.regularEnemyKillCount = 0;
     this.clearUfo();
     this.ufoSpawnTimerSeconds = gameConfig.ufoSpawnMinDelaySeconds;
+    this.byteBeatSpawnTimerSeconds = gameConfig.byteBeatOrbSpawnIntervalSeconds;
     if (this.healthPickup !== null) {
       this.healthPickup.mesh.dispose();
       this.healthPickup = null;
     }
+    for (const orb of this.byteBeatOrbs) {
+      orb.mesh.dispose();
+    }
+    this.byteBeatOrbs.length = 0;
     this.rebuildTurrets();
   }
 
@@ -262,6 +331,30 @@ export class WorldManager {
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       this.turrets.push(this.turretSpawner.spawnAt(new Vector3(x, 1.4, z)));
+    }
+  }
+
+  private updateByteBeatOrbs(playerPosition: Readonly<Vector3>, deltaSeconds: number): void {
+    this.byteBeatSpawnTimerSeconds -= deltaSeconds;
+    if (
+      this.byteBeatSpawnTimerSeconds <= 0 &&
+      this.byteBeatOrbs.length < gameConfig.maxByteBeatOrbs
+    ) {
+      this.spawnByteBeatOrb(playerPosition);
+      this.byteBeatSpawnTimerSeconds = gameConfig.byteBeatOrbSpawnIntervalSeconds;
+    }
+
+    for (const orb of this.byteBeatOrbs) {
+      const move = playerPosition.subtract(orb.mesh.position);
+      move.y = 0;
+      if (move.lengthSquared() > 0.0001) {
+        move.normalize();
+        orb.mesh.position.addInPlace(move.scale(gameConfig.byteBeatOrbMoveSpeed * deltaSeconds));
+      }
+
+      orb.sampleTime += deltaSeconds;
+      const beat = this.byteBeatWave(orb.sampleTime);
+      this.applyByteBeatOrbColorBand(beat);
     }
   }
 
@@ -330,7 +423,9 @@ export class WorldManager {
       end,
       progress: 0,
       distance: Math.max(this.ufoTravel.length(), 0.001),
-      fireTimerSeconds: gameConfig.ufoFireIntervalSeconds * 0.3
+      fireTimerSeconds: gameConfig.ufoFireIntervalSeconds * 0.3,
+      health: gameConfig.ufoHealth,
+      scoreValue: gameConfig.ufoScore
     };
   }
 
@@ -341,19 +436,87 @@ export class WorldManager {
     }
   }
 
+  private applyByteBeatOrbColorBand(beat: number): void {
+    if (beat < -0.5) {
+      this.byteBeatOrbMaterial.diffuseColor.set(0.45, 0.14, 0.66);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.13, 0.03, 0.21);
+      return;
+    }
+
+    if (beat < 0) {
+      this.byteBeatOrbMaterial.diffuseColor.set(0.56, 0.18, 0.79);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.18, 0.04, 0.27);
+      return;
+    }
+
+    if (beat < 0.5) {
+      this.byteBeatOrbMaterial.diffuseColor.set(0.69, 0.23, 0.9);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.24, 0.06, 0.35);
+      return;
+    }
+
+    this.byteBeatOrbMaterial.diffuseColor.set(0.87, 0.36, 0.99);
+    this.byteBeatOrbMaterial.emissiveColor.set(0.35, 0.1, 0.49);
+  }
+
   private spawnHealthPickup(): void {
     if (this.healthPickup !== null) {
       this.healthPickup.mesh.dispose();
     }
 
-    const pickup = MeshBuilder.CreatePolyhedron("health-pickup", { type: 1, size: 2.2 }, this.scene);
-    pickup.material = this.healthPickupMaterial;
-    const span = gameConfig.worldHalfSize * 0.72;
-    pickup.position.set((Math.random() * 2 - 1) * span, 1.5, (Math.random() * 2 - 1) * span);
+    const margin = 20;
+    const span = (gameConfig.worldHalfSize - margin) * 2;
+    const x = -gameConfig.worldHalfSize + margin + Math.random() * span;
+    const z = -gameConfig.worldHalfSize + margin + Math.random() * span;
+    const mesh = MeshBuilder.CreateTorus("health-pickup", { diameter: 2.5, thickness: 0.55, tessellation: 18 }, this.scene);
+    mesh.position.set(x, 1.5, z);
+    mesh.rotation.x = Math.PI / 2;
+    mesh.material = this.healthPickupMaterial;
 
     this.healthPickup = {
-      mesh: pickup,
-      spinRate: 4.5
+      mesh,
+      spinRate: 2.5
     };
+  }
+
+  private spawnByteBeatOrb(playerPosition: Readonly<Vector3>): void {
+    const minRadius = gameConfig.targetSafeRadius + 18;
+    const maxRadius = gameConfig.worldHalfSize * 0.85;
+    const angle = Math.random() * Math.PI * 2;
+    const radius = minRadius + Math.random() * (maxRadius - minRadius);
+    const x = playerPosition.x + Math.cos(angle) * radius;
+    const z = playerPosition.z + Math.sin(angle) * radius;
+
+    const clampedX = Math.max(-gameConfig.worldHalfSize + 8, Math.min(gameConfig.worldHalfSize - 8, x));
+    const clampedZ = Math.max(-gameConfig.worldHalfSize + 8, Math.min(gameConfig.worldHalfSize - 8, z));
+
+    const mesh = MeshBuilder.CreateSphere("bytebeat-orb", { diameter: 4.2, segments: 16 }, this.scene);
+    mesh.position.set(clampedX, gameConfig.byteBeatOrbHeight, clampedZ);
+    mesh.material = this.byteBeatOrbMaterial;
+
+    this.byteBeatOrbs.push({
+      mesh,
+      health: gameConfig.byteBeatOrbHealth,
+      scoreValue: gameConfig.byteBeatOrbScore,
+      sampleTime: 0
+    });
+  }
+
+  private removeByteBeatOrb(orb: ByteBeatOrbEntity): void {
+    const index = this.byteBeatOrbs.indexOf(orb);
+    if (index >= 0) {
+      this.byteBeatOrbs[index].mesh.dispose();
+      this.byteBeatOrbs.splice(index, 1);
+      this.byteBeatSpawnTimerSeconds = Math.min(
+        this.byteBeatSpawnTimerSeconds,
+        gameConfig.byteBeatOrbSpawnIntervalSeconds * 0.55
+      );
+    }
+  }
+
+  private byteBeatWave(sampleTime: number): number {
+    const t = Math.floor(sampleTime * gameConfig.byteBeatAudioSampleRate);
+    const raw = t * ((t ^ t + ((t >> 15) | 1) ^ (((t - 1280) ^ t) >> 10)) & 255);
+    return ((raw & 255) / 127.5) - 1;
   }
 }

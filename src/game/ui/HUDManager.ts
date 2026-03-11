@@ -1,6 +1,6 @@
 import "./hud.css";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { TargetEntity, TurretEntity } from "../entities/types";
+import { ByteBeatOrbEntity, TargetEntity, TurretEntity } from "../entities/types";
 import { GameState } from "../core/GameStateStore";
 
 export interface HUDWorldSnapshot {
@@ -8,6 +8,7 @@ export interface HUDWorldSnapshot {
   playerPosition: Readonly<Vector3>;
   targets: readonly TargetEntity[];
   turrets: readonly TurretEntity[];
+  byteBeatOrbs: readonly ByteBeatOrbEntity[];
   level: number;
   levelMessage: string;
 }
@@ -117,6 +118,15 @@ export class HUDManager {
       const y = center + turret.root.position.z * scale;
       context.fillStyle = "#c877ff";
       context.fillRect(x - 3, y - 3, 6, 6);
+    }
+
+    for (const byteBeatOrb of worldSnapshot.byteBeatOrbs) {
+      const x = center + byteBeatOrb.mesh.position.x * scale;
+      const y = center + byteBeatOrb.mesh.position.z * scale;
+      context.fillStyle = "#ff4af8";
+      context.beginPath();
+      context.arc(x, y, 3.5, 0, Math.PI * 2);
+      context.fill();
     }
 
     const playerX = center + worldSnapshot.playerPosition.x * scale;

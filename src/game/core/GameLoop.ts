@@ -38,6 +38,7 @@ export class GameLoop {
     }
 
     if (state.appState !== "playing") {
+      this.audioManager.updateByteBeatProximity(null);
       this.playerView.sync(
         this.playerController.state.position,
         this.playerController.state.yaw,
@@ -48,6 +49,7 @@ export class GameLoop {
         playerPosition: this.playerController.state.position,
         targets: this.worldManager.getTargets(),
         turrets: this.worldManager.getTurrets(),
+        byteBeatOrbs: this.worldManager.getByteBeatOrbs(),
         level: this.worldManager.getLevel(),
         levelMessage: this.worldManager.getLevelMessage()
       });
@@ -68,6 +70,11 @@ export class GameLoop {
     }
 
     this.worldManager.update(this.playerController.state.position, deltaSeconds);
+    const nearestByteBeatOrbDistance = this.worldManager.getNearestByteBeatOrbDistance(
+      this.playerController.state.position
+    );
+    this.audioManager.updateByteBeatProximity(nearestByteBeatOrbDistance);
+
     const turretShots = this.worldManager.collectTurretShots(this.playerController.state.position);
     for (const shot of turretShots) {
       const muzzleOrigin = shot.origin.add(shot.direction.scale(2));
@@ -98,6 +105,7 @@ export class GameLoop {
       playerPosition: this.playerController.state.position,
       targets: this.worldManager.getTargets(),
       turrets: this.worldManager.getTurrets(),
+      byteBeatOrbs: this.worldManager.getByteBeatOrbs(),
       level: this.worldManager.getLevel(),
       levelMessage: this.worldManager.getLevelMessage()
     });
