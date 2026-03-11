@@ -17,6 +17,7 @@ export class CollisionSystem {
   public process(playerPosition: Vector3, deltaSeconds: number): void {
     const targets = this.worldManager.getTargets();
     const turrets = this.worldManager.getTurrets();
+    const byteBeatOrbs = this.worldManager.getByteBeatOrbs();
     const projectiles = this.projectileSystem.getProjectiles();
 
     for (const projectile of [...projectiles]) {
@@ -51,6 +52,24 @@ export class CollisionSystem {
               this.worldManager.removeTurret(turret);
               this.damageSystem.awardScore(turret.scoreValue);
             }
+            consumed = true;
+            break;
+          }
+        }
+
+        if (consumed) {
+          continue;
+        }
+
+        for (const byteBeatOrb of [...byteBeatOrbs]) {
+          const distance = Vector3.Distance(projectile.mesh.position, byteBeatOrb.mesh.position);
+          if (distance <= gameConfig.byteBeatOrbCollisionRadius) {
+            this.projectileSystem.removeProjectile(projectile);
+            const destroyed = this.worldManager.applyByteBeatOrbHit(byteBeatOrb, projectile.damage);
+            if (destroyed) {
+              this.impactEffectSystem.spawnTurretDestroyEffect(byteBeatOrb.mesh.position);
+              this.damageSystem.awardScore(byteBeatOrb.scoreValue);
+            }
             break;
           }
         }
@@ -73,6 +92,13 @@ export class CollisionSystem {
       const distance = Vector3.Distance(playerPosition, target.mesh.position);
       if (distance <= gameConfig.targetCollisionRadius + 0.75) {
         contactDamage += gameConfig.targetContactDamagePerSecond * deltaSeconds;
+      }
+    }
+
+    for (const byteBeatOrb of this.worldManager.getByteBeatOrbs()) {
+      const distance = Vector3.Distance(playerPosition, byteBeatOrb.mesh.position);
+      if (distance <= gameConfig.byteBeatOrbCollisionRadius) {
+        contactDamage += gameConfig.byteBeatOrbContactDamagePerSecond * deltaSeconds;
       }
     }
 

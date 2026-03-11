@@ -34,5 +34,18 @@ export const gameConfig = {
   regularKillsPerHealthPickup: 20,
   healthPickupValue: 30,
   healthPickupCollisionRadius: 2,
+  byteBeatOrbSpawnIntervalSeconds: 14,
+  maxByteBeatOrbs: 1,
+  byteBeatOrbHeight: 2.6,
+  byteBeatOrbMoveSpeed: 7.5,
+  byteBeatOrbHealth: 18,
+  byteBeatOrbScore: 700,
+  byteBeatOrbCollisionRadius: 2.2,
+  byteBeatOrbContactDamagePerSecond: 24,
+  byteBeatAudioSampleRate: 8000,
+  byteBeatAudioBaseGain: 0.01,
+  byteBeatAudioMaxGain: 0.1,
+  byteBeatAudioAudibleRadius: 55,
+  byteBeatAudioNearRadius: 8,
   bestScoreStorageKey: "retro-flatland-shooter.best-score"
 } as const;

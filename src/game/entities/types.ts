@@ -5,6 +5,13 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 export type EntityKind = "player" | "projectile" | "target" | "enemy" | "landmark";
 export type ProjectileOwner = "player" | "enemy";
 
+export interface ByteBeatOrbEntity {
+  mesh: Mesh;
+  health: number;
+  scoreValue: number;
+  sampleTime: number;
+}
+
 export interface ProjectileEntity {
   mesh: Mesh;
   direction: Vector3;
