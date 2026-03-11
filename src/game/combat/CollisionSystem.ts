@@ -70,8 +70,20 @@ export class CollisionSystem {
               this.impactEffectSystem.spawnTurretDestroyEffect(byteBeatOrb.mesh.position);
               this.damageSystem.awardScore(byteBeatOrb.scoreValue);
             }
+            consumed = true;
             break;
           }
+        }
+
+        if (consumed) {
+          continue;
+        }
+
+        const ufoHit = this.worldManager.tryHitUfo(projectile.mesh.position, projectile.damage);
+        if (ufoHit !== null) {
+          this.projectileSystem.removeProjectile(projectile);
+          this.impactEffectSystem.spawnTurretDestroyEffect(ufoHit.position);
+          this.damageSystem.awardScore(ufoHit.scoreValue);
         }
       } else {
         const playerHitDistance = Vector3.Distance(projectile.mesh.position, playerPosition);

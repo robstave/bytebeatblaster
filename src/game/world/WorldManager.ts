@@ -18,6 +18,8 @@ interface UfoPass {
   progress: number;
   distance: number;
   fireTimerSeconds: number;
+  health: number;
+  scoreValue: number;
 }
 
 interface HealthPickup {
@@ -161,6 +163,30 @@ export class WorldManager {
     }];
   }
 
+  public tryHitUfo(projectilePosition: Readonly<Vector3>, damage: number): { position: Vector3; scoreValue: number } | null {
+    if (this.activeUfo === null) {
+      return null;
+    }
+
+    const distance = Vector3.Distance(projectilePosition, this.activeUfo.root.position);
+    if (distance > gameConfig.ufoCollisionRadius) {
+      return null;
+    }
+
+    this.activeUfo.health -= damage;
+    if (this.activeUfo.health > 0) {
+      return null;
+    }
+
+    const result = {
+      position: this.activeUfo.root.position.clone(),
+      scoreValue: this.activeUfo.scoreValue
+    };
+    this.clearUfo();
+    this.ufoSpawnTimerSeconds = gameConfig.ufoSpawnMinDelaySeconds;
+    return result;
+  }
+
   public getTargets(): readonly TargetEntity[] {
     return this.targets;
   }
@@ -220,8 +246,6 @@ export class WorldManager {
       return true;
     }
 
-    const healthRatio = Math.max(0.2, orb.health / gameConfig.byteBeatOrbHealth);
-    orb.mesh.scaling.setAll(0.8 + healthRatio * 0.4);
     return false;
   }
 
@@ -330,11 +354,7 @@ export class WorldManager {
 
       orb.sampleTime += deltaSeconds;
       const beat = this.byteBeatWave(orb.sampleTime);
-      const scale = 1 + beat * 0.14;
-      orb.mesh.scaling.set(scale, scale, scale);
-
-      const emissive = 0.3 + beat * 0.28;
-      this.byteBeatOrbMaterial.emissiveColor.set(0.26 + beat * 0.12, 0.06, emissive);
+      this.applyByteBeatOrbColorBand(beat);
     }
   }
 
@@ -403,7 +423,9 @@ export class WorldManager {
       end,
       progress: 0,
       distance: Math.max(this.ufoTravel.length(), 0.001),
-      fireTimerSeconds: gameConfig.ufoFireIntervalSeconds * 0.3
+      fireTimerSeconds: gameConfig.ufoFireIntervalSeconds * 0.3,
+      health: gameConfig.ufoHealth,
+      scoreValue: gameConfig.ufoScore
     };
   }
 
@@ -412,6 +434,29 @@ export class WorldManager {
       this.activeUfo.root.dispose(false, true);
       this.activeUfo = null;
     }
+  }
+
+  private applyByteBeatOrbColorBand(beat: number): void {
+    if (beat < -0.5) {
+      this.byteBeatOrbMaterial.diffuseColor.set(0.45, 0.14, 0.66);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.13, 0.03, 0.21);
+      return;
+    }
+
+    if (beat < 0) {
+      this.byteBeatOrbMaterial.diffuseColor.set(0.56, 0.18, 0.79);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.18, 0.04, 0.27);
+      return;
+    }
+
+    if (beat < 0.5) {
+      this.byteBeatOrbMaterial.diffuseColor.set(0.69, 0.23, 0.9);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.24, 0.06, 0.35);
+      return;
+    }
+
+    this.byteBeatOrbMaterial.diffuseColor.set(0.87, 0.36, 0.99);
+    this.byteBeatOrbMaterial.emissiveColor.set(0.35, 0.1, 0.49);
   }
 
   private spawnHealthPickup(): void {
