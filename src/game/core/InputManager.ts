@@ -25,8 +25,8 @@ export class InputManager {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     window.addEventListener("mousemove", this.onMouseMove);
-    window.addEventListener("mousedown", this.onMouseDown);
-    window.addEventListener("mouseup", this.onMouseUp);
+    window.addEventListener("pointerdown", this.onPointerDown);
+    window.addEventListener("pointerup", this.onPointerUp);
     document.addEventListener("pointerlockchange", this.onPointerLockChanged);
   }
 
@@ -76,14 +76,14 @@ export class InputManager {
     this.lookDeltaY += event.movementY;
   };
 
-  private readonly onMouseDown = (event: MouseEvent): void => {
+  private readonly onPointerDown = (event: PointerEvent): void => {
     if (event.button === 0 && this.pointerLocked) {
       this.fireHeld = true;
       this.firePressedThisFrame = true;
     }
   };
 
-  private readonly onMouseUp = (event: MouseEvent): void => {
+  private readonly onPointerUp = (event: PointerEvent): void => {
     if (event.button === 0) {
       this.fireHeld = false;
     }
