@@ -7,6 +7,7 @@ import { ProjectileSystem } from "./ProjectileSystem";
 /** Owns player firing cadence and projectile spawning. */
 export class WeaponController {
   private spreadShotsRemaining = 0;
+  private crystalShotsRemaining = 0;
 
   public update(
     input: InputSnapshot,
@@ -27,9 +28,14 @@ export class WeaponController {
     );
 
     const spawnOrigin = playerController.state.position.add(forward.scale(1.1));
-    const spawned = projectileSystem.spawn(spawnOrigin, forward);
+    const useCrystalShot = this.crystalShotsRemaining > 0;
+    const spawned = projectileSystem.spawn(spawnOrigin, forward, useCrystalShot ? "playerCrystal" : "player");
 
-    if (spawned && this.spreadShotsRemaining > 0) {
+    if (spawned && useCrystalShot) {
+      this.crystalShotsRemaining = Math.max(0, this.crystalShotsRemaining - 1);
+    }
+
+    if (spawned && this.spreadShotsRemaining > 0 && !useCrystalShot) {
       const spreadAngle = (gameConfig.spreadShotAngleDegrees * Math.PI) / 180;
       const leftDirection = this.rotateAroundYaw(forward, -spreadAngle);
       const rightDirection = this.rotateAroundYaw(forward, spreadAngle);
@@ -52,11 +58,22 @@ export class WeaponController {
   /** Clears temporary firing power-up state. */
   public reset(): void {
     this.spreadShotsRemaining = 0;
+    this.crystalShotsRemaining = 0;
   }
 
   /** Returns remaining spread-charged shots. */
   public getSpreadShotsRemaining(): number {
     return this.spreadShotsRemaining;
+  }
+
+  /** Activates crystal rounds that fire stronger red diamond shots. */
+  public activateCrystalShots(shots: number): void {
+    this.crystalShotsRemaining = Math.max(this.crystalShotsRemaining, shots);
+  }
+
+  /** Returns remaining crystal shots. */
+  public getCrystalShotsRemaining(): number {
+    return this.crystalShotsRemaining;
   }
 
   private rotateAroundYaw(direction: Readonly<Vector3>, angleRadians: number): Vector3 {

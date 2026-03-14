@@ -6,7 +6,8 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { gameConfig } from "../config/gameConfig";
-import { ByteBeatOrbEntity, SpreadPickupEntity, TargetEntity, TurretEntity } from "../entities/types";
+import { byteBeatFormulas, getByteBeatFormula } from "../audio/byteBeatFormulas";
+import { ByteBeatOrbEntity, CrystalPickupEntity, SpreadPickupEntity, TargetEntity, TurretEntity } from "../entities/types";
 import { LandmarkSpawner } from "./LandmarkSpawner";
 import { TargetSpawner } from "./TargetSpawner";
 import { TurretSpawner } from "./TurretSpawner";
@@ -47,8 +48,10 @@ export class WorldManager {
   private healthPickup: HealthPickup | null = null;
   private readonly healthPickupMaterial: StandardMaterial;
   private readonly spreadPickupMaterial: StandardMaterial;
+  private readonly crystalPickupMaterial: StandardMaterial;
   private regularEnemyKillCount = 0;
   private spreadPickup: SpreadPickupEntity | null = null;
+  private crystalPickup: CrystalPickupEntity | null = null;
   private byteBeatSpawnTimerSeconds: number = gameConfig.byteBeatOrbSpawnIntervalSeconds;
 
   public constructor(scene: Scene) {
@@ -72,6 +75,10 @@ export class WorldManager {
     this.spreadPickupMaterial = new StandardMaterial("spread-pickup-material", scene);
     this.spreadPickupMaterial.diffuseColor = new Color3(0.5, 0.96, 1);
     this.spreadPickupMaterial.emissiveColor = new Color3(0.15, 0.52, 0.56);
+
+    this.crystalPickupMaterial = new StandardMaterial("crystal-pickup-material", scene);
+    this.crystalPickupMaterial.diffuseColor = new Color3(1, 0.26, 0.26);
+    this.crystalPickupMaterial.emissiveColor = new Color3(0.7, 0.08, 0.08);
     this.rebuildTurrets();
   }
 
@@ -114,6 +121,11 @@ export class WorldManager {
       this.spreadPickup.pulseTime += deltaSeconds;
       const intensity = 0.18 + Math.sin(this.spreadPickup.pulseTime * 5.5) * 0.08;
       this.spreadPickupMaterial.emissiveColor.set(0.15 + intensity, 0.52 + intensity * 0.5, 0.56 + intensity * 0.7);
+    }
+
+    if (this.crystalPickup !== null) {
+      this.crystalPickup.mesh.rotation.y += this.crystalPickup.spinRate * deltaSeconds;
+      this.crystalPickup.mesh.rotation.x += this.crystalPickup.spinRate * 0.5 * deltaSeconds;
     }
 
     if (this.turrets.length === 0) {
@@ -197,6 +209,7 @@ export class WorldManager {
       position: this.activeUfo.root.position.clone(),
       scoreValue: this.activeUfo.scoreValue
     };
+    this.spawnCrystalPickup(result.position);
     this.clearUfo();
     this.ufoSpawnTimerSeconds = gameConfig.ufoSpawnMinDelaySeconds;
     return result;
@@ -296,6 +309,21 @@ export class WorldManager {
     return true;
   }
 
+  public tryCollectCrystalPickup(playerPosition: Readonly<Vector3>): boolean {
+    if (this.crystalPickup === null) {
+      return false;
+    }
+
+    const distance = Vector3.Distance(playerPosition, this.crystalPickup.mesh.position);
+    if (distance > gameConfig.crystalPickupCollisionRadius) {
+      return false;
+    }
+
+    this.crystalPickup.mesh.dispose(false, true);
+    this.crystalPickup = null;
+    return true;
+  }
+
   public removeTurret(turret: TurretEntity): void {
     const index = this.turrets.indexOf(turret);
     if (index >= 0) {
@@ -323,6 +351,10 @@ export class WorldManager {
     if (this.spreadPickup !== null) {
       this.spreadPickup.mesh.dispose();
       this.spreadPickup = null;
+    }
+    if (this.crystalPickup !== null) {
+      this.crystalPickup.mesh.dispose();
+      this.crystalPickup = null;
     }
     for (const orb of this.byteBeatOrbs) {
       orb.mesh.dispose();
@@ -390,8 +422,16 @@ export class WorldManager {
       }
 
       orb.sampleTime += deltaSeconds;
+      orb.nextFormulaSwitchSeconds -= deltaSeconds;
+      if (orb.nextFormulaSwitchSeconds <= 0) {
+        orb.formulaIndex += 1;
+        orb.nextFormulaSwitchSeconds = 3.8 + Math.random() * 2.3;
+      }
+
       const beat = this.byteBeatWave(orb.sampleTime);
       this.applyByteBeatOrbColorBand(beat);
+      orb.mesh.rotation.y += deltaSeconds * (1.6 + Math.max(0, beat) * 2.8);
+      orb.mesh.rotation.x += deltaSeconds * 0.7;
     }
   }
 
@@ -474,26 +514,27 @@ export class WorldManager {
   }
 
   private applyByteBeatOrbColorBand(beat: number): void {
+    const glitch = Math.max(0, beat) * 0.2;
     if (beat < -0.5) {
-      this.byteBeatOrbMaterial.diffuseColor.set(0.45, 0.14, 0.66);
-      this.byteBeatOrbMaterial.emissiveColor.set(0.13, 0.03, 0.21);
+      this.byteBeatOrbMaterial.diffuseColor.set(0.42 + glitch, 0.11, 0.66 + glitch * 0.4);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.13 + glitch, 0.03, 0.21 + glitch);
       return;
     }
 
     if (beat < 0) {
-      this.byteBeatOrbMaterial.diffuseColor.set(0.56, 0.18, 0.79);
-      this.byteBeatOrbMaterial.emissiveColor.set(0.18, 0.04, 0.27);
+      this.byteBeatOrbMaterial.diffuseColor.set(0.56 + glitch, 0.15, 0.79 + glitch * 0.4);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.18 + glitch, 0.04, 0.27 + glitch);
       return;
     }
 
     if (beat < 0.5) {
-      this.byteBeatOrbMaterial.diffuseColor.set(0.69, 0.23, 0.9);
-      this.byteBeatOrbMaterial.emissiveColor.set(0.24, 0.06, 0.35);
+      this.byteBeatOrbMaterial.diffuseColor.set(0.69 + glitch, 0.2 + glitch * 0.4, 0.9 + glitch * 0.3);
+      this.byteBeatOrbMaterial.emissiveColor.set(0.24 + glitch, 0.06 + glitch * 0.2, 0.35 + glitch);
       return;
     }
 
-    this.byteBeatOrbMaterial.diffuseColor.set(0.87, 0.36, 0.99);
-    this.byteBeatOrbMaterial.emissiveColor.set(0.35, 0.1, 0.49);
+    this.byteBeatOrbMaterial.diffuseColor.set(0.95, 0.35 + glitch * 0.6, 1);
+    this.byteBeatOrbMaterial.emissiveColor.set(0.42 + glitch, 0.08 + glitch * 0.4, 0.62 + glitch);
   }
 
   private spawnHealthPickup(): void {
@@ -564,15 +605,38 @@ export class WorldManager {
     const clampedX = Math.max(-gameConfig.worldHalfSize + 8, Math.min(gameConfig.worldHalfSize - 8, x));
     const clampedZ = Math.max(-gameConfig.worldHalfSize + 8, Math.min(gameConfig.worldHalfSize - 8, z));
 
-    const mesh = MeshBuilder.CreateSphere("bytebeat-orb", { diameter: 4.2, segments: 16 }, this.scene);
+    const mesh = MeshBuilder.CreateSphere("bytebeat-orb", { diameter: 0.01, segments: 4 }, this.scene);
     mesh.position.set(clampedX, gameConfig.byteBeatOrbHeight, clampedZ);
-    mesh.material = this.byteBeatOrbMaterial;
+    mesh.isVisible = false;
+
+    const core = MeshBuilder.CreatePolyhedron("bytebeat-orb-core", { type: 1, size: 1.75 }, this.scene);
+    core.parent = mesh;
+    core.material = this.byteBeatOrbMaterial;
+
+    const ring = MeshBuilder.CreateTorus("bytebeat-orb-ring", { diameter: 3.8, thickness: 0.3, tessellation: 16 }, this.scene);
+    ring.parent = mesh;
+    ring.rotation.x = Math.PI * 0.5;
+    ring.material = this.byteBeatOrbMaterial;
+
+    const finA = MeshBuilder.CreateCylinder("bytebeat-orb-fin-a", { diameterTop: 0.15, diameterBottom: 0.65, height: 1.7, tessellation: 8 }, this.scene);
+    finA.parent = mesh;
+    finA.position.set(0, 0.4, 1.55);
+    finA.rotation.x = Math.PI * 0.4;
+    finA.material = this.byteBeatOrbMaterial;
+
+    const finB = finA.clone("bytebeat-orb-fin-b", mesh);
+    if (finB !== null) {
+      finB.position.z *= -1;
+      finB.rotation.x *= -1;
+    }
 
     this.byteBeatOrbs.push({
       mesh,
       health: gameConfig.byteBeatOrbHealth,
       scoreValue: gameConfig.byteBeatOrbScore,
-      sampleTime: 0
+      sampleTime: 0,
+      formulaIndex: Math.floor(Math.random() * byteBeatFormulas.length),
+      nextFormulaSwitchSeconds: 3.8 + Math.random() * 2.3
     });
   }
 
@@ -590,7 +654,38 @@ export class WorldManager {
 
   private byteBeatWave(sampleTime: number): number {
     const t = Math.floor(sampleTime * gameConfig.byteBeatAudioSampleRate);
-    const raw = t * ((t ^ t + ((t >> 15) | 1) ^ (((t - 1280) ^ t) >> 10)) & 255);
+    const firstOrb = this.byteBeatOrbs[0];
+    const raw = getByteBeatFormula(firstOrb?.formulaIndex ?? 0)(t);
     return ((raw & 255) / 127.5) - 1;
+  }
+
+  public getByteBeatFormulaIndex(): number {
+    return this.byteBeatOrbs[0]?.formulaIndex ?? 0;
+  }
+
+  private spawnCrystalPickup(position: Readonly<Vector3>): void {
+    if (this.crystalPickup !== null) {
+      this.crystalPickup.mesh.dispose();
+      this.crystalPickup = null;
+    }
+
+    const root = MeshBuilder.CreateSphere("crystal-pickup", { diameter: 0.01, segments: 4 }, this.scene);
+    root.position.copyFrom(position);
+    root.position.y = 2.6;
+    root.isVisible = false;
+
+    const diamond = MeshBuilder.CreatePolyhedron("crystal-pickup-diamond", { type: 1, size: 1.2 }, this.scene);
+    diamond.parent = root;
+    diamond.material = this.crystalPickupMaterial;
+
+    const ring = MeshBuilder.CreateTorus("crystal-pickup-ring", { diameter: 2.4, thickness: 0.2, tessellation: 16 }, this.scene);
+    ring.parent = root;
+    ring.rotation.x = Math.PI * 0.5;
+    ring.material = this.crystalPickupMaterial;
+
+    this.crystalPickup = {
+      mesh: root,
+      spinRate: 4.2
+    };
   }
 }

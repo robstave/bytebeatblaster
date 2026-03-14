@@ -106,6 +106,11 @@ export class CollisionSystem {
       this.weaponController.activateSpreadShots(gameConfig.spreadPickupShotCount);
     }
 
+    const collectedCrystalPickup = this.worldManager.tryCollectCrystalPickup(playerPosition);
+    if (collectedCrystalPickup) {
+      this.weaponController.activateCrystalShots(gameConfig.crystalShotCount);
+    }
+
     let contactDamage = 0;
     for (const target of this.worldManager.getTargets()) {
       const distance = Vector3.Distance(playerPosition, target.mesh.position);
