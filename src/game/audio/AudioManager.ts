@@ -1,4 +1,5 @@
 import { gameConfig } from "../config/gameConfig";
+import { getByteBeatFormula } from "./byteBeatFormulas";
 
 /** Plays lightweight synthesized feedback sounds. */
 export class AudioManager {
@@ -6,6 +7,7 @@ export class AudioManager {
   private byteBeatGain: GainNode | null = null;
   private byteBeatEnabled = false;
   private byteBeatT = 0;
+  private activeFormulaIndex = 0;
 
   public initialize(): void {
     if (this.context !== null) {
@@ -42,6 +44,11 @@ export class AudioManager {
     this.byteBeatEnabled = hasOrb;
     const targetGain = hasOrb ? this.computeByteBeatGain(distanceToNearestOrb) : 0;
     gainNode.gain.setTargetAtTime(targetGain, this.context.currentTime, 0.04);
+  }
+
+  /** Selects which bytebeat formula is currently rendered. */
+  public setByteBeatFormulaIndex(index: number): void {
+    this.activeFormulaIndex = index;
   }
 
   private playTone(
@@ -101,7 +108,7 @@ export class AudioManager {
   }
 
   private byteBeatFormula(t: number): number {
-    return t * ((t ^ t + ((t >> 15) | 1) ^ (((t - 1280) ^ t) >> 10)) & 255);
+    return getByteBeatFormula(this.activeFormulaIndex)(t);
   }
 
   private computeByteBeatGain(distanceToNearestOrb: number): number {

@@ -3,13 +3,15 @@ import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 
 export type EntityKind = "player" | "projectile" | "target" | "enemy" | "landmark";
-export type ProjectileOwner = "player" | "enemy";
+export type ProjectileOwner = "player" | "enemy" | "playerCrystal";
 
 export interface ByteBeatOrbEntity {
   mesh: Mesh;
   health: number;
   scoreValue: number;
   sampleTime: number;
+  formulaIndex: number;
+  nextFormulaSwitchSeconds: number;
 }
 
 
@@ -17,6 +19,11 @@ export interface SpreadPickupEntity {
   mesh: Mesh;
   spinRate: number;
   pulseTime: number;
+}
+
+export interface CrystalPickupEntity {
+  mesh: Mesh;
+  spinRate: number;
 }
 
 export interface ProjectileEntity {

@@ -52,7 +52,8 @@ export class GameLoop {
         byteBeatOrbs: this.worldManager.getByteBeatOrbs(),
         level: this.worldManager.getLevel(),
         levelMessage: this.worldManager.getLevelMessage(),
-        spreadShotsRemaining: this.weaponController.getSpreadShotsRemaining()
+        spreadShotsRemaining: this.weaponController.getSpreadShotsRemaining(),
+        crystalShotsRemaining: this.weaponController.getCrystalShotsRemaining()
       });
       this.lastAppState = state.appState;
       return;
@@ -74,6 +75,7 @@ export class GameLoop {
     const nearestByteBeatOrbDistance = this.worldManager.getNearestByteBeatOrbDistance(
       this.playerController.state.position
     );
+    this.audioManager.setByteBeatFormulaIndex(this.worldManager.getByteBeatFormulaIndex());
     this.audioManager.updateByteBeatProximity(nearestByteBeatOrbDistance);
 
     const turretShots = this.worldManager.collectTurretShots(this.playerController.state.position);
@@ -109,7 +111,8 @@ export class GameLoop {
       byteBeatOrbs: this.worldManager.getByteBeatOrbs(),
       level: this.worldManager.getLevel(),
       levelMessage: this.worldManager.getLevelMessage(),
-      spreadShotsRemaining: this.weaponController.getSpreadShotsRemaining()
+      spreadShotsRemaining: this.weaponController.getSpreadShotsRemaining(),
+      crystalShotsRemaining: this.weaponController.getCrystalShotsRemaining()
     });
     this.lastAppState = nextState;
   }

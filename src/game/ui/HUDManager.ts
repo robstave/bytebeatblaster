@@ -12,6 +12,7 @@ export interface HUDWorldSnapshot {
   level: number;
   levelMessage: string;
   spreadShotsRemaining: number;
+  crystalShotsRemaining: number;
 }
 
 /** Owns the overlay HUD and applies minimal DOM updates. */
@@ -71,7 +72,10 @@ export class HUDManager {
     this.setText(this.scoreEl, `SCORE ${this.formatScore(state.score)}`);
     this.setText(this.levelEl, `LEVEL ${worldSnapshot.level}`);
     this.setText(this.bestEl, `BEST ${this.formatScore(state.bestScore)}`);
-    this.setText(this.spreadEl, `SPREAD READY: ${worldSnapshot.spreadShotsRemaining}`);
+    this.setText(
+      this.spreadEl,
+      `SPREAD READY: ${worldSnapshot.spreadShotsRemaining}  CRYSTAL: ${worldSnapshot.crystalShotsRemaining}`
+    );
 
     const healthValue = Math.ceil(state.playerHealth);
     this.setText(this.healthLabelEl, `HEALTH ${healthValue}`);

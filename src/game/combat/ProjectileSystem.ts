@@ -11,6 +11,7 @@ export class ProjectileSystem {
   private readonly projectiles: ProjectileEntity[] = [];
   private readonly playerProjectileMaterial: StandardMaterial;
   private readonly enemyProjectileMaterial: StandardMaterial;
+  private readonly crystalProjectileMaterial: StandardMaterial;
 
   public constructor(private readonly scene: Scene) {
     this.playerProjectileMaterial = new StandardMaterial("projectile-material-player", scene);
@@ -18,6 +19,10 @@ export class ProjectileSystem {
 
     this.enemyProjectileMaterial = new StandardMaterial("projectile-material-enemy", scene);
     this.enemyProjectileMaterial.emissiveColor = new Color3(0.95, 0.42, 0.95);
+
+    this.crystalProjectileMaterial = new StandardMaterial("projectile-material-crystal", scene);
+    this.crystalProjectileMaterial.diffuseColor = new Color3(0.98, 0.22, 0.22);
+    this.crystalProjectileMaterial.emissiveColor = new Color3(0.95, 0.08, 0.08);
   }
 
   public spawn(origin: Vector3, direction: Vector3, owner: ProjectileOwner = "player"): boolean {
@@ -25,16 +30,31 @@ export class ProjectileSystem {
       return false;
     }
 
-    const mesh = MeshBuilder.CreateSphere("projectile", { diameter: gameConfig.projectileRadius * 2 }, this.scene);
+    const isCrystal = owner === "playerCrystal";
+    const mesh = isCrystal
+      ? MeshBuilder.CreatePolyhedron("projectile-crystal", { type: 1, size: gameConfig.projectileRadius * 1.7 }, this.scene)
+      : MeshBuilder.CreateSphere("projectile", { diameter: gameConfig.projectileRadius * 2 }, this.scene);
     mesh.position.copyFrom(origin);
-    mesh.material = owner === "player" ? this.playerProjectileMaterial : this.enemyProjectileMaterial;
+    if (owner === "player") {
+      mesh.material = this.playerProjectileMaterial;
+    } else if (owner === "enemy") {
+      mesh.material = this.enemyProjectileMaterial;
+    } else {
+      mesh.material = this.crystalProjectileMaterial;
+      mesh.rotation.z = Math.PI * 0.25;
+    }
 
     this.projectiles.push({
       mesh,
       direction: direction.normalizeToNew(),
-      speed: owner === "player" ? gameConfig.projectileSpeed : gameConfig.turretProjectileSpeed,
+      speed: owner === "enemy" ? gameConfig.turretProjectileSpeed : gameConfig.projectileSpeed,
       lifetimeSeconds: gameConfig.projectileLifetimeSeconds,
-      damage: owner === "player" ? gameConfig.projectileDamage : gameConfig.turretProjectileDamage,
+      damage:
+        owner === "enemy"
+          ? gameConfig.turretProjectileDamage
+          : owner === "playerCrystal"
+            ? gameConfig.crystalProjectileDamage
+            : gameConfig.projectileDamage,
       owner
     });
     return true;
@@ -45,6 +65,9 @@ export class ProjectileSystem {
       const projectile = this.projectiles[i];
       projectile.lifetimeSeconds -= deltaSeconds;
       projectile.mesh.position.addInPlace(projectile.direction.scale(projectile.speed * deltaSeconds));
+      if (projectile.owner === "playerCrystal") {
+        projectile.mesh.rotation.y += deltaSeconds * 12;
+      }
 
       const half = gameConfig.worldHalfSize;
       const outOfBounds =
