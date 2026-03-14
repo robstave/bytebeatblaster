@@ -6,6 +6,8 @@ import { ProjectileSystem } from "./ProjectileSystem";
 
 /** Owns player firing cadence and projectile spawning. */
 export class WeaponController {
+  private spreadShotsRemaining = 0;
+
   public update(
     input: InputSnapshot,
     playerController: PlayerController,
@@ -26,9 +28,46 @@ export class WeaponController {
 
     const spawnOrigin = playerController.state.position.add(forward.scale(1.1));
     const spawned = projectileSystem.spawn(spawnOrigin, forward);
+
+    if (spawned && this.spreadShotsRemaining > 0) {
+      const spreadAngle = (gameConfig.spreadShotAngleDegrees * Math.PI) / 180;
+      const leftDirection = this.rotateAroundYaw(forward, -spreadAngle);
+      const rightDirection = this.rotateAroundYaw(forward, spreadAngle);
+      projectileSystem.spawn(spawnOrigin, leftDirection);
+      projectileSystem.spawn(spawnOrigin, rightDirection);
+      this.spreadShotsRemaining = Math.max(0, this.spreadShotsRemaining - 1);
+    }
+
     if (spawned) {
       playerController.state.fireCooldownSeconds = gameConfig.weaponCooldownSeconds;
     }
     return spawned;
+  }
+
+  /** Activates spread shots for the next number of primary fired shots. */
+  public activateSpreadShots(shots: number): void {
+    this.spreadShotsRemaining = Math.max(this.spreadShotsRemaining, shots);
+  }
+
+  /** Clears temporary firing power-up state. */
+  public reset(): void {
+    this.spreadShotsRemaining = 0;
+  }
+
+  /** Returns remaining spread-charged shots. */
+  public getSpreadShotsRemaining(): number {
+    return this.spreadShotsRemaining;
+  }
+
+  private rotateAroundYaw(direction: Readonly<Vector3>, angleRadians: number): Vector3 {
+    const cosAngle = Math.cos(angleRadians);
+    const sinAngle = Math.sin(angleRadians);
+    const rotated = new Vector3(
+      direction.x * cosAngle + direction.z * sinAngle,
+      direction.y,
+      -direction.x * sinAngle + direction.z * cosAngle
+    );
+
+    return rotated.normalize();
   }
 }

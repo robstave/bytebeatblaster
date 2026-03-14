@@ -1,8 +1,50 @@
 import { Scene } from "@babylonjs/core/scene";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { RawTexture } from "@babylonjs/core/Materials/Textures/rawTexture";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+
+/**
+ * Build a checkerboard + grid RGBA buffer purely in JS.
+ * Returns a Uint8Array of size*size*4 bytes.
+ */
+function buildGridBuffer(size: number): Uint8Array {
+  const data = new Uint8Array(size * size * 4);
+  const cell = size / 8; // 8×8 checker tiles
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+
+      /* checkerboard base — two dark tones */
+      const cx = Math.floor(x / cell);
+      const cy = Math.floor(y / cell);
+      const dark = (cx + cy) % 2 === 0;
+      const base = dark ? 14 : 33; // very subtle difference
+      data[i] = base;
+      data[i + 1] = base + 2;
+      data[i + 2] = base + 6;
+      data[i + 3] = 255;
+
+      /* minor grid lines every cell/4 pixels */
+      const minor = cell / 4;
+      if (x % minor < 1 || y % minor < 1) {
+        data[i] = base + 22;
+        data[i + 1] = base + 18;
+        data[i + 2] = base + 30;
+      }
+
+      /* major grid lines at tile boundaries */
+      if (x % cell < 1 || y % cell < 1) {
+        data[i] = base + 22;
+        data[i + 1] = base + 32;
+        data[i + 2] = base + 50;
+      }
+    }
+  }
+  return data;
+}
 
 /** Creates a large patterned ground plane for orientation. */
 export function createGround(scene: Scene, worldHalfSize: number): void {
@@ -12,49 +54,28 @@ export function createGround(scene: Scene, worldHalfSize: number): void {
     scene
   );
 
-  const textureSize = 256;
-  const gridTexture = new DynamicTexture("ground-grid", textureSize, scene, false);
-  const ctx = gridTexture.getContext();
-  ctx.fillStyle = "#0f131a";
-  ctx.fillRect(0, 0, textureSize, textureSize);
-  const step = 16;
-  for (let x = 0; x < textureSize; x += step) {
-    const major = x % 64 === 0;
-    ctx.strokeStyle = major ? "#5671a0" : "#31445f";
-    ctx.lineWidth = major ? 2 : 1;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, textureSize);
-    ctx.stroke();
-  }
-  for (let y = 0; y < textureSize; y += step) {
-    const major = y % 64 === 0;
-    ctx.strokeStyle = major ? "#5a6f97" : "#2d3d56";
-    ctx.lineWidth = major ? 2 : 1;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(textureSize, y);
-    ctx.stroke();
-  }
-  ctx.strokeStyle = "#66a8ff";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(textureSize / 2, 0);
-  ctx.lineTo(textureSize / 2, textureSize);
-  ctx.stroke();
-  ctx.strokeStyle = "#90cf8d";
-  ctx.beginPath();
-  ctx.moveTo(0, textureSize / 2);
-  ctx.lineTo(textureSize, textureSize / 2);
-  ctx.stroke();
-  gridTexture.update();
+  /* Generate a 256×256 RGBA grid texture */
+  const texSize = 256;
+  const buf = buildGridBuffer(texSize);
+  const gridTexture = RawTexture.CreateRGBATexture(
+    buf,
+    texSize,
+    texSize,
+    scene,
+    false,
+    false,
+    Texture.NEAREST_SAMPLINGMODE
+  );
+  gridTexture.wrapU = Texture.WRAP_ADDRESSMODE;
+  gridTexture.wrapV = Texture.WRAP_ADDRESSMODE;
+  gridTexture.uScale = 30;
+  gridTexture.vScale = 30;
 
   const material = new StandardMaterial("ground-material", scene);
+  material.specularColor = new Color3(0, 0, 0);
   material.diffuseTexture = gridTexture;
-  material.specularColor.set(0, 0, 0);
-  material.emissiveColor.set(0.05, 0.05, 0.08);
-  gridTexture.uScale = 60;
-  gridTexture.vScale = 60;
+  material.emissiveTexture = gridTexture;
+  material.emissiveColor = new Color3(0, 0, 0);
   ground.material = material;
 
   const edgeMaterial = new StandardMaterial("arena-edge-material", scene);

@@ -6,7 +6,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { gameConfig } from "../config/gameConfig";
-import { ByteBeatOrbEntity, TargetEntity, TurretEntity } from "../entities/types";
+import { ByteBeatOrbEntity, SpreadPickupEntity, TargetEntity, TurretEntity } from "../entities/types";
 import { LandmarkSpawner } from "./LandmarkSpawner";
 import { TargetSpawner } from "./TargetSpawner";
 import { TurretSpawner } from "./TurretSpawner";
@@ -46,7 +46,9 @@ export class WorldManager {
   private readonly ufoTravel = new Vector3();
   private healthPickup: HealthPickup | null = null;
   private readonly healthPickupMaterial: StandardMaterial;
+  private readonly spreadPickupMaterial: StandardMaterial;
   private regularEnemyKillCount = 0;
+  private spreadPickup: SpreadPickupEntity | null = null;
   private byteBeatSpawnTimerSeconds: number = gameConfig.byteBeatOrbSpawnIntervalSeconds;
 
   public constructor(scene: Scene) {
@@ -66,6 +68,10 @@ export class WorldManager {
     this.healthPickupMaterial = new StandardMaterial("health-pickup-material", scene);
     this.healthPickupMaterial.diffuseColor = new Color3(0.12, 1, 0.18);
     this.healthPickupMaterial.emissiveColor = new Color3(0.08, 0.6, 0.12);
+
+    this.spreadPickupMaterial = new StandardMaterial("spread-pickup-material", scene);
+    this.spreadPickupMaterial.diffuseColor = new Color3(0.5, 0.96, 1);
+    this.spreadPickupMaterial.emissiveColor = new Color3(0.15, 0.52, 0.56);
     this.rebuildTurrets();
   }
 
@@ -101,6 +107,13 @@ export class WorldManager {
     this.updateUfo(playerPosition, deltaSeconds);
     if (this.healthPickup !== null) {
       this.healthPickup.mesh.rotation.y += this.healthPickup.spinRate * deltaSeconds;
+    }
+
+    if (this.spreadPickup !== null) {
+      this.spreadPickup.mesh.rotation.y += this.spreadPickup.spinRate * deltaSeconds;
+      this.spreadPickup.pulseTime += deltaSeconds;
+      const intensity = 0.18 + Math.sin(this.spreadPickup.pulseTime * 5.5) * 0.08;
+      this.spreadPickupMaterial.emissiveColor.set(0.15 + intensity, 0.52 + intensity * 0.5, 0.56 + intensity * 0.7);
     }
 
     if (this.turrets.length === 0) {
@@ -236,6 +249,9 @@ export class WorldManager {
       if (this.regularEnemyKillCount % gameConfig.regularKillsPerHealthPickup === 0) {
         this.spawnHealthPickup();
       }
+      if (this.regularEnemyKillCount % gameConfig.regularKillsPerSpreadPickup === 0) {
+        this.spawnSpreadPickup();
+      }
       return true;
     }
     return false;
@@ -265,6 +281,21 @@ export class WorldManager {
     return gameConfig.healthPickupValue;
   }
 
+  public tryCollectSpreadPickup(playerPosition: Readonly<Vector3>): boolean {
+    if (this.spreadPickup === null) {
+      return false;
+    }
+
+    const distance = Vector3.Distance(playerPosition, this.spreadPickup.mesh.position);
+    if (distance > gameConfig.spreadPickupCollisionRadius) {
+      return false;
+    }
+
+    this.spreadPickup.mesh.dispose(false, true);
+    this.spreadPickup = null;
+    return true;
+  }
+
   public removeTurret(turret: TurretEntity): void {
     const index = this.turrets.indexOf(turret);
     if (index >= 0) {
@@ -288,6 +319,10 @@ export class WorldManager {
     if (this.healthPickup !== null) {
       this.healthPickup.mesh.dispose();
       this.healthPickup = null;
+    }
+    if (this.spreadPickup !== null) {
+      this.spreadPickup.mesh.dispose();
+      this.spreadPickup = null;
     }
     for (const orb of this.byteBeatOrbs) {
       orb.mesh.dispose();
@@ -478,6 +513,43 @@ export class WorldManager {
     this.healthPickup = {
       mesh,
       spinRate: 2.5
+    };
+  }
+
+
+  private spawnSpreadPickup(): void {
+    if (this.spreadPickup !== null) {
+      this.spreadPickup.mesh.dispose();
+    }
+
+    const margin = 20;
+    const span = (gameConfig.worldHalfSize - margin) * 2;
+    const x = -gameConfig.worldHalfSize + margin + Math.random() * span;
+    const z = -gameConfig.worldHalfSize + margin + Math.random() * span;
+
+    /* Invisible root sphere (tiny, acts as collision / position anchor) */
+    const root = MeshBuilder.CreateSphere("spread-pickup", { diameter: 0.01, segments: 4 }, this.scene);
+    root.position.set(x, 1.9, z);
+    root.isVisible = false;
+
+    /* Three small orbiting spheres arranged 120° apart */
+    const orbitRadius = 0.9;
+    for (let i = 0; i < 3; i++) {
+      const angle = (i * 2 * Math.PI) / 3;
+      const orb = MeshBuilder.CreateSphere(`spread-orb-${i}`, { diameter: 0.7, segments: 8 }, this.scene);
+      orb.position.set(
+        Math.cos(angle) * orbitRadius,
+        Math.sin(i * 0.8) * 0.25,
+        Math.sin(angle) * orbitRadius
+      );
+      orb.parent = root;
+      orb.material = this.spreadPickupMaterial;
+    }
+
+    this.spreadPickup = {
+      mesh: root,
+      spinRate: 3.6,
+      pulseTime: 0
     };
   }
 

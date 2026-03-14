@@ -11,15 +11,18 @@ export interface HUDWorldSnapshot {
   byteBeatOrbs: readonly ByteBeatOrbEntity[];
   level: number;
   levelMessage: string;
+  spreadShotsRemaining: number;
 }
 
 /** Owns the overlay HUD and applies minimal DOM updates. */
 export class HUDManager {
   private root: HTMLDivElement | null = null;
   private scoreEl: HTMLDivElement | null = null;
-  private bestEl: HTMLDivElement | null = null;
-  private healthEl: HTMLDivElement | null = null;
   private levelEl: HTMLDivElement | null = null;
+  private bestEl: HTMLDivElement | null = null;
+  private spreadEl: HTMLDivElement | null = null;
+  private healthLabelEl: HTMLDivElement | null = null;
+  private healthFillEl: HTMLDivElement | null = null;
   private stateTextEl: HTMLDivElement | null = null;
   private minimapCanvas: HTMLCanvasElement | null = null;
   private minimapContext: CanvasRenderingContext2D | null = null;
@@ -28,11 +31,17 @@ export class HUDManager {
     this.root = document.createElement("div");
     this.root.id = "hud-root";
     this.root.innerHTML = `
-      <div class="hud-top">
-        <div id="hud-score">Score: 0</div>
-        <div id="hud-best">Best: 0</div>
-        <div id="hud-health">Health: 100</div>
-        <div id="hud-level">Level: 1</div>
+      <div class="hud-top hud-top-left">
+        <div id="hud-score" class="hud-score">SCORE 000000</div>
+        <div id="hud-level">LEVEL 1</div>
+      </div>
+      <div class="hud-top hud-top-right">
+        <div id="hud-best">BEST 000000</div>
+      </div>
+      <div class="hud-bottom-left">
+        <div id="hud-health-label">HEALTH 100</div>
+        <div class="hud-health-bar"><div id="hud-health-fill"></div></div>
+        <div id="hud-spread">SPREAD READY: 0</div>
       </div>
       <div class="hud-center">
         <div class="crosshair">+</div>
@@ -44,9 +53,11 @@ export class HUDManager {
     `;
     document.body.appendChild(this.root);
     this.scoreEl = this.root.querySelector("#hud-score");
-    this.bestEl = this.root.querySelector("#hud-best");
-    this.healthEl = this.root.querySelector("#hud-health");
     this.levelEl = this.root.querySelector("#hud-level");
+    this.bestEl = this.root.querySelector("#hud-best");
+    this.spreadEl = this.root.querySelector("#hud-spread");
+    this.healthLabelEl = this.root.querySelector("#hud-health-label");
+    this.healthFillEl = this.root.querySelector("#hud-health-fill");
     this.stateTextEl = this.root.querySelector("#hud-state");
     this.minimapCanvas = this.root.querySelector("#hud-minimap");
     this.minimapContext = this.minimapCanvas?.getContext("2d") ?? null;
@@ -57,10 +68,14 @@ export class HUDManager {
     pointerLocked: boolean,
     worldSnapshot: HUDWorldSnapshot
   ): void {
-    this.setText(this.scoreEl, `Score: ${state.score}`);
-    this.setText(this.bestEl, `Best: ${state.bestScore}`);
-    this.setText(this.healthEl, `Health: ${Math.ceil(state.playerHealth)}`);
-    this.setText(this.levelEl, `Level: ${worldSnapshot.level}`);
+    this.setText(this.scoreEl, `SCORE ${this.formatScore(state.score)}`);
+    this.setText(this.levelEl, `LEVEL ${worldSnapshot.level}`);
+    this.setText(this.bestEl, `BEST ${this.formatScore(state.bestScore)}`);
+    this.setText(this.spreadEl, `SPREAD READY: ${worldSnapshot.spreadShotsRemaining}`);
+
+    const healthValue = Math.ceil(state.playerHealth);
+    this.setText(this.healthLabelEl, `HEALTH ${healthValue}`);
+    this.setHealthBar(state.playerHealth);
     this.drawMinimap(worldSnapshot);
 
     const message =
@@ -78,6 +93,30 @@ export class HUDManager {
     if (element !== null && element.textContent !== value) {
       element.textContent = value;
     }
+  }
+
+  private setHealthBar(health: number): void {
+    if (this.healthFillEl === null) {
+      return;
+    }
+
+    const normalized = Math.max(0, Math.min(1, health / 100));
+    this.healthFillEl.style.width = `${normalized * 100}%`;
+
+    if (normalized > 0.6) {
+      this.healthFillEl.style.background = "linear-gradient(90deg, #24c05a, #6df59b)";
+      return;
+    }
+    if (normalized > 0.3) {
+      this.healthFillEl.style.background = "linear-gradient(90deg, #cca312, #f0dd5f)";
+      return;
+    }
+
+    this.healthFillEl.style.background = "linear-gradient(90deg, #b11f26, #ef4b53)";
+  }
+
+  private formatScore(value: number): string {
+    return value.toString().padStart(6, "0");
   }
 
   private drawMinimap(worldSnapshot: HUDWorldSnapshot): void {
@@ -116,24 +155,20 @@ export class HUDManager {
     for (const turret of worldSnapshot.turrets) {
       const x = center + turret.root.position.x * scale;
       const y = center + turret.root.position.z * scale;
-      context.fillStyle = "#c877ff";
+      context.fillStyle = "#f2c172";
       context.fillRect(x - 3, y - 3, 6, 6);
     }
 
-    for (const byteBeatOrb of worldSnapshot.byteBeatOrbs) {
-      const x = center + byteBeatOrb.mesh.position.x * scale;
-      const y = center + byteBeatOrb.mesh.position.z * scale;
-      context.fillStyle = "#ff4af8";
-      context.beginPath();
-      context.arc(x, y, 3.5, 0, Math.PI * 2);
-      context.fill();
+    for (const orb of worldSnapshot.byteBeatOrbs) {
+      const x = center + orb.mesh.position.x * scale;
+      const y = center + orb.mesh.position.z * scale;
+      context.fillStyle = "#bb5df5";
+      context.fillRect(x - 3, y - 3, 6, 6);
     }
 
     const playerX = center + worldSnapshot.playerPosition.x * scale;
     const playerY = center + worldSnapshot.playerPosition.z * scale;
-    context.fillStyle = "#6fe8a8";
-    context.beginPath();
-    context.arc(playerX, playerY, 4, 0, Math.PI * 2);
-    context.fill();
+    context.fillStyle = "#9be8ff";
+    context.fillRect(playerX - 3, playerY - 3, 6, 6);
   }
 }

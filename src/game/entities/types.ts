@@ -12,6 +12,13 @@ export interface ByteBeatOrbEntity {
   sampleTime: number;
 }
 
+
+export interface SpreadPickupEntity {
+  mesh: Mesh;
+  spinRate: number;
+  pulseTime: number;
+}
+
 export interface ProjectileEntity {
   mesh: Mesh;
   direction: Vector3;

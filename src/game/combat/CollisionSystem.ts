@@ -4,6 +4,7 @@ import { DamageSystem } from "./DamageSystem";
 import { ImpactEffectSystem } from "./ImpactEffectSystem";
 import { ProjectileSystem } from "./ProjectileSystem";
 import { WorldManager } from "../world/WorldManager";
+import { WeaponController } from "./WeaponController";
 
 /** Processes projectile collisions and contact damage outcomes. */
 export class CollisionSystem {
@@ -11,7 +12,8 @@ export class CollisionSystem {
     private readonly worldManager: WorldManager,
     private readonly projectileSystem: ProjectileSystem,
     private readonly damageSystem: DamageSystem,
-    private readonly impactEffectSystem: ImpactEffectSystem
+    private readonly impactEffectSystem: ImpactEffectSystem,
+    private readonly weaponController: WeaponController
   ) {}
 
   public process(playerPosition: Vector3, deltaSeconds: number): void {
@@ -97,6 +99,11 @@ export class CollisionSystem {
     const recoveredHealth = this.worldManager.tryCollectHealthPickup(playerPosition);
     if (recoveredHealth > 0) {
       this.damageSystem.healPlayer(recoveredHealth);
+    }
+
+    const collectedSpreadPickup = this.worldManager.tryCollectSpreadPickup(playerPosition);
+    if (collectedSpreadPickup) {
+      this.weaponController.activateSpreadShots(gameConfig.spreadPickupShotCount);
     }
 
     let contactDamage = 0;

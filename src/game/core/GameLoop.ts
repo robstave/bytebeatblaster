@@ -51,7 +51,8 @@ export class GameLoop {
         turrets: this.worldManager.getTurrets(),
         byteBeatOrbs: this.worldManager.getByteBeatOrbs(),
         level: this.worldManager.getLevel(),
-        levelMessage: this.worldManager.getLevelMessage()
+        levelMessage: this.worldManager.getLevelMessage(),
+        spreadShotsRemaining: this.weaponController.getSpreadShotsRemaining()
       });
       this.lastAppState = state.appState;
       return;
@@ -107,7 +108,8 @@ export class GameLoop {
       turrets: this.worldManager.getTurrets(),
       byteBeatOrbs: this.worldManager.getByteBeatOrbs(),
       level: this.worldManager.getLevel(),
-      levelMessage: this.worldManager.getLevelMessage()
+      levelMessage: this.worldManager.getLevelMessage(),
+      spreadShotsRemaining: this.weaponController.getSpreadShotsRemaining()
     });
     this.lastAppState = nextState;
   }
@@ -121,6 +123,7 @@ export class GameLoop {
     this.playerController.state.pitch = 0;
     this.playerController.state.fireCooldownSeconds = 0;
     this.gameStateStore.resetRun();
+    this.weaponController.reset();
     this.lastAppState = "playing";
   }
 }
