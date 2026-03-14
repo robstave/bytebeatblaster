@@ -8,6 +8,7 @@ export interface InputSnapshot {
   lookDeltaY: number;
   wantsFire: boolean;
   wantsRestart: boolean;
+  wantsPauseToggle: boolean;
   pointerLocked: boolean;
 }
 
@@ -19,6 +20,7 @@ export class InputManager {
   private fireHeld = false;
   private firePressedThisFrame = false;
   private wantsRestart = false;
+  private wantsPauseToggle = false;
   private pointerLocked = false;
 
   public constructor(private readonly canvas: HTMLCanvasElement) {
@@ -42,6 +44,7 @@ export class InputManager {
       lookDeltaY: this.lookDeltaY,
       wantsFire: this.fireHeld || this.firePressedThisFrame || this.isPressed(inputConfig.fireKey),
       wantsRestart: this.wantsRestart,
+      wantsPauseToggle: this.wantsPauseToggle,
       pointerLocked: this.pointerLocked
     };
 
@@ -49,6 +52,7 @@ export class InputManager {
     this.lookDeltaY = 0;
     this.firePressedThisFrame = false;
     this.wantsRestart = false;
+    this.wantsPauseToggle = false;
 
     return snapshot;
   }
@@ -61,6 +65,9 @@ export class InputManager {
     this.keys.add(event.code);
     if (event.code === inputConfig.restartKey) {
       this.wantsRestart = true;
+    }
+    if (event.code === inputConfig.pauseKey) {
+      this.wantsPauseToggle = true;
     }
   };
 

@@ -37,8 +37,22 @@ export class GameLoop {
       this.restartRun();
     }
 
-    if (state.appState !== "playing") {
-      this.audioManager.updateByteBeatProximity(null);
+    const currentState = this.gameStateStore.getState().appState;
+    if (input.wantsPauseToggle && (currentState === "playing" || currentState === "paused")) {
+      this.gameStateStore.togglePause();
+    }
+
+    const appState = this.gameStateStore.getState().appState;
+    if (appState !== "playing") {
+      if (appState === "paused") {
+        const nearestByteBeatOrbDistance = this.worldManager.getNearestByteBeatOrbDistance(
+          this.playerController.state.position
+        );
+        this.audioManager.setByteBeatFormulaIndex(this.worldManager.getByteBeatFormulaIndex());
+        this.audioManager.updateByteBeatProximity(nearestByteBeatOrbDistance);
+      } else {
+        this.audioManager.updateByteBeatProximity(null);
+      }
       this.playerView.sync(
         this.playerController.state.position,
         this.playerController.state.yaw,
@@ -55,7 +69,7 @@ export class GameLoop {
         spreadShotsRemaining: this.weaponController.getSpreadShotsRemaining(),
         crystalShotsRemaining: this.weaponController.getCrystalShotsRemaining()
       });
-      this.lastAppState = state.appState;
+      this.lastAppState = appState;
       return;
     }
 
