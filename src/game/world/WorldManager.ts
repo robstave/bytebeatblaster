@@ -92,6 +92,8 @@ export class WorldManager {
       if (move.lengthSquared() > 0.0001) {
         move.normalize();
         target.mesh.position.addInPlace(move.scale(gameConfig.targetMoveSpeed * deltaSeconds));
+        // Face the player so the bug head points forward
+        target.mesh.rotation.y = Math.atan2(move.x, move.z);
       }
     }
 
