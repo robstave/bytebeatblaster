@@ -46,7 +46,8 @@ export class GameBootstrap {
       worldManager,
       projectileSystem,
       damageSystem,
-      impactEffectSystem
+      impactEffectSystem,
+      weaponController
     );
     const loop = new GameLoop(
       inputManager,

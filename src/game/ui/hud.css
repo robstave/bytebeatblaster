@@ -9,11 +9,60 @@
 .hud-top {
   position: absolute;
   top: 12px;
-  left: 12px;
-  right: 12px;
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 6px rgba(8, 14, 22, 0.9);
+}
+
+.hud-top-left {
+  left: 14px;
+}
+
+.hud-top-right {
+  right: 14px;
+  text-align: right;
+}
+
+.hud-score {
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: 24px;
+  color: #9bf0ff;
+}
+
+.hud-bottom-left {
+  position: absolute;
+  left: 14px;
+  bottom: 16px;
+  width: min(360px, 42vw);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.hud-health-bar {
+  width: 100%;
+  height: 18px;
+  background: rgba(22, 25, 32, 0.88);
+  border: 2px solid rgba(209, 226, 255, 0.72);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+#hud-health-fill {
+  height: 100%;
+  width: 100%;
+  transition: width 0.12s linear;
+}
+
+#hud-spread {
   font-size: 14px;
+  letter-spacing: 0.08em;
+  color: #88f4ff;
 }
 
 .hud-center {
@@ -24,7 +73,8 @@
 }
 
 .crosshair {
-  font-size: 24px;
+  font-size: 26px;
+  font-weight: 700;
   transform: translateY(-12px);
 }
 
@@ -33,7 +83,6 @@
   top: 56%;
   font-size: 18px;
 }
-
 
 .hud-minimap-wrap {
   position: absolute;
