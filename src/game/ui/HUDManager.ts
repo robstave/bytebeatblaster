@@ -83,13 +83,15 @@ export class HUDManager {
     this.drawMinimap(worldSnapshot);
 
     const message =
-      state.appState === "boot" || state.appState === "ready"
-        ? "Click to start"
-        : state.appState === "gameOver"
-          ? "Game Over - Press R to restart"
-          : pointerLocked
-            ? ""
-            : "Click to re-enter";
+      state.appState === "paused"
+        ? "Paused - Press P to resume"
+        : state.appState === "boot" || state.appState === "ready"
+          ? "Click to start"
+          : state.appState === "gameOver"
+            ? "Game Over - Press R to restart"
+            : pointerLocked
+              ? ""
+              : "Click to re-enter";
     this.setText(this.stateTextEl, worldSnapshot.levelMessage || message);
   }
 

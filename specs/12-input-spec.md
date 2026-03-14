@@ -6,6 +6,7 @@
 - Mouse: look
 - Left click: fire
 - R: restart
+- P: pause/resume during active run
 - Escape: release pointer lock as browser allows
 
 ## Abstraction rule

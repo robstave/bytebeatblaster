@@ -1,6 +1,6 @@
 import { gameConfig } from "../config/gameConfig";
 
-export type AppState = "boot" | "ready" | "playing" | "gameOver";
+export type AppState = "boot" | "ready" | "playing" | "paused" | "gameOver";
 
 export interface GameState {
   appState: AppState;
@@ -37,6 +37,17 @@ export class GameStateStore {
       score: 0,
       playerHealth: gameConfig.initialHealth
     };
+  }
+
+  /** Toggles active run state between playing and paused. */
+  public togglePause(): void {
+    if (this.state.appState === "playing") {
+      this.state = { ...this.state, appState: "paused" };
+      return;
+    }
+    if (this.state.appState === "paused") {
+      this.state = { ...this.state, appState: "playing" };
+    }
   }
 
   public addScore(points: number): void {
