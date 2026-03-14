@@ -39,7 +39,7 @@ export const gameConfig = {
   healthPickupCollisionRadius: 2,
   regularKillsPerSpreadPickup: 10,
   spreadPickupShotCount: 10,
-  spreadShotAngleDegrees: 10,
+  spreadShotAngleDegrees: 4,
   spreadPickupCollisionRadius: 2,
   byteBeatOrbSpawnIntervalSeconds: 14,
   maxByteBeatOrbs: 1,

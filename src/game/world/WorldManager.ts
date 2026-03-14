@@ -291,7 +291,7 @@ export class WorldManager {
       return false;
     }
 
-    this.spreadPickup.mesh.dispose();
+    this.spreadPickup.mesh.dispose(false, true);
     this.spreadPickup = null;
     return true;
   }
@@ -526,12 +526,28 @@ export class WorldManager {
     const span = (gameConfig.worldHalfSize - margin) * 2;
     const x = -gameConfig.worldHalfSize + margin + Math.random() * span;
     const z = -gameConfig.worldHalfSize + margin + Math.random() * span;
-    const mesh = MeshBuilder.CreateSphere("spread-pickup", { diameter: 2.4, segments: 14 }, this.scene);
-    mesh.position.set(x, 1.9, z);
-    mesh.material = this.spreadPickupMaterial;
+
+    /* Invisible root sphere (tiny, acts as collision / position anchor) */
+    const root = MeshBuilder.CreateSphere("spread-pickup", { diameter: 0.01, segments: 4 }, this.scene);
+    root.position.set(x, 1.9, z);
+    root.isVisible = false;
+
+    /* Three small orbiting spheres arranged 120° apart */
+    const orbitRadius = 0.9;
+    for (let i = 0; i < 3; i++) {
+      const angle = (i * 2 * Math.PI) / 3;
+      const orb = MeshBuilder.CreateSphere(`spread-orb-${i}`, { diameter: 0.7, segments: 8 }, this.scene);
+      orb.position.set(
+        Math.cos(angle) * orbitRadius,
+        Math.sin(i * 0.8) * 0.25,
+        Math.sin(angle) * orbitRadius
+      );
+      orb.parent = root;
+      orb.material = this.spreadPickupMaterial;
+    }
 
     this.spreadPickup = {
-      mesh,
+      mesh: root,
       spinRate: 3.6,
       pulseTime: 0
     };
